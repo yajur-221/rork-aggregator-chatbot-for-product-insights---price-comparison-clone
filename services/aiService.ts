@@ -33,11 +33,14 @@ function tryExtractJsonString(input: string): string | null {
 
 function sanitizeJsonString(possibleJson: string): string {
   let s = possibleJson.trim();
+  s = s.replace(/\uFEFF/g, '');
   s = s.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
   s = s.replace(/[“”]/g, '"').replace(/[‘’]/g, "'");
-  s = s.replace(/,\s*([}\]])/g, '$1');
   s = s.replace(/\r?\n/g, '\n');
   s = s.replace(/\t/g, '\t');
+  s = s.replace(/\bNaN\b/g, '0');
+  s = s.replace(/\bundefined\b/g, 'null');
+  s = s.replace(/,\s*([}\]])/g, '$1');
   s = s.replace(/'([A-Za-z0-9_]+)'\s*:/g, '"$1":');
   s = s.replace(/:\s*'([^']*?)'/g, ': "$1"');
   const first = s.indexOf('{');
@@ -45,6 +48,27 @@ function sanitizeJsonString(possibleJson: string): string {
   if (first !== -1 && last !== -1 && last > first) {
     s = s.slice(first, last + 1);
   }
+  return s;
+}
+
+function balanceJsonBrackets(s: string): string {
+  let openCurly = 0;
+  let openSquare = 0;
+  let inString = false;
+  let escape = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (escape) { escape = false; continue; }
+    if (ch === '\\') { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === '{') openCurly++;
+    else if (ch === '}') openCurly = Math.max(0, openCurly - 1);
+    else if (ch === '[') openSquare++;
+    else if (ch === ']') openSquare = Math.max(0, openSquare - 1);
+  }
+  while (openSquare > 0) { s += ']'; openSquare--; }
+  while (openCurly > 0) { s += '}'; openCurly--; }
   return s;
 }
 
@@ -86,26 +110,38 @@ export async function generateAIResponse(query: string): Promise<AIResponse> {
         if (!jsonString) throw new Error('No JSON content found in completion');
 
         jsonString = sanitizeJsonString(jsonString);
+        jsonString = balanceJsonBrackets(jsonString);
 
         let aiResponse: AIResponse | null = null;
-        try {
-          aiResponse = JSON.parse(jsonString) as AIResponse;
-        } catch (e1) {
-          console.warn('First JSON.parse failed, re-sanitizing full completion...', e1);
-          jsonString = sanitizeJsonString(completion);
-          aiResponse = JSON.parse(jsonString) as AIResponse;
+        let lastErr: unknown = null;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            aiResponse = JSON.parse(jsonString) as AIResponse;
+            break;
+          } catch (e1) {
+            lastErr = e1;
+            console.warn(`JSON.parse attempt ${attempt + 1} failed, repairing...`);
+            if (attempt === 0) {
+              jsonString = balanceJsonBrackets(sanitizeJsonString(completion));
+            } else if (attempt === 1) {
+              jsonString = jsonString.replace(/(\{|,|\n)\s*([A-Za-z0-9_]+)\s*:/g, '$1 "$2":');
+              jsonString = balanceJsonBrackets(jsonString);
+            }
+          }
         }
 
-        console.log('AI response parsed successfully');
-        
-        const youtubeLinks = await generateYouTubeLinks(query);
-        
-        return {
-          ...aiResponse,
-          youtubeLinks
-        } as AIResponse;
+        if (!aiResponse) {
+          console.warn('Failed to parse AI response after repairs', lastErr);
+        } else {
+          console.log('AI response parsed successfully');
+          const youtubeLinks = await generateYouTubeLinks(query);
+          return {
+            ...aiResponse,
+            youtubeLinks
+          } as AIResponse;
+        }
       } catch (parseError) {
-        console.error('Error parsing AI response:', parseError);
+        console.warn('Gracefully handling AI response parse issue');
         console.log('Raw AI response (first 500 chars):', completion.slice(0, 500));
       }
     } else {
