@@ -72,10 +72,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   userAvatar: {
-    backgroundColor: '#667eea',
+    backgroundColor: '#2563eb',
   },
   botAvatar: {
-    backgroundColor: '#764ba2',
+    backgroundColor: '#334155',
   },
   messageBubble: {
     maxWidth: '75%',
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   userBubble: {
-    backgroundColor: '#667eea',
+    backgroundColor: '#2563eb',
     borderBottomRightRadius: 4,
   },
   botBubble: {

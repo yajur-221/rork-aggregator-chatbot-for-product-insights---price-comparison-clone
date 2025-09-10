@@ -67,7 +67,6 @@ export default function ResultsScreen() {
 
     const load = async () => {
       setIsLoading(true);
-      setProductData(null);
       try {
         if (!abortController.signal.aborted) {
           if (!location) {
