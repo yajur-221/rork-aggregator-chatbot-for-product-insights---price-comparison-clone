@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#0f172a',
+    color: '#111827',
   },
   section: {
     marginBottom: 24,
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#0f172a',
+    color: '#111827',
     marginBottom: 12,
   },
   listItem: {
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
   },
   videoTitle: {
     fontSize: 14,
-    color: '#0f172a',
+    color: '#111827',
     fontWeight: '500',
     marginBottom: 4,
   },
@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
   ratingText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#0f172a',
+    color: '#111827',
   },
   reviewSummary: {
     fontSize: 14,
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
   },
   specValue: {
     fontSize: 14,
-    color: '#0f172a',
+    color: '#111827',
     fontWeight: '600',
   },
   alternativeCard: {
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   alternativeName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#0f172a',
+    color: '#111827',
   },
   alternativePrice: {
     fontSize: 14,
@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
   faqQuestion: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#0f172a',
+    color: '#111827',
     marginBottom: 8,
   },
   faqAnswer: {
