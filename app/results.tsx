@@ -88,7 +88,9 @@ export default function ResultsScreen() {
         if (abortController.signal.aborted) return;
         
         console.log('AI insights received:', aiInsights ? 'Success' : 'Failed');
+        console.log('AI insights data:', aiInsights);
         console.log('Price comparison received:', priceComparison ? `${priceComparison.length} items` : 'Failed');
+        console.log('Price comparison data:', priceComparison);
         
         const productDetails = {
           productName: query as string,
@@ -115,8 +117,18 @@ export default function ResultsScreen() {
           }
         };
         
-        const newProductData = { aiInsights, priceComparison, productDetails };
-        console.log('Setting product data:', newProductData);
+        const newProductData = { 
+          aiInsights: aiInsights || null, 
+          priceComparison: priceComparison || [], 
+          productDetails 
+        };
+        console.log('Setting product data:', {
+          hasAiInsights: !!newProductData.aiInsights,
+          aiInsightsKeys: newProductData.aiInsights ? Object.keys(newProductData.aiInsights) : [],
+          hasPriceComparison: !!newProductData.priceComparison,
+          priceComparisonLength: newProductData.priceComparison?.length || 0,
+          hasProductDetails: !!newProductData.productDetails
+        });
         setProductData(newProductData);
       } catch (error) {
         console.error('Error processing request:', error);
@@ -133,7 +145,7 @@ export default function ResultsScreen() {
     return () => {
       abortController.abort();
     };
-  }, [query, location, requestLocation]);
+  }, [query]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -188,10 +200,22 @@ export default function ResultsScreen() {
             return isTablet ? (
               <View style={styles.tabletLayout}>
                 <View style={styles.insightsSection}>
-                  <AIInsights data={productData.aiInsights} />
+                  {productData.aiInsights ? (
+                    <AIInsights data={productData.aiInsights} />
+                  ) : (
+                    <View style={styles.loadingComponent}>
+                      <Text style={styles.loadingText}>Loading AI Insights...</Text>
+                    </View>
+                  )}
                 </View>
                 <View style={styles.priceSection}>
-                  <PriceComparison data={productData.priceComparison} />
+                  {productData.priceComparison && productData.priceComparison.length > 0 ? (
+                    <PriceComparison data={productData.priceComparison} />
+                  ) : (
+                    <View style={styles.loadingComponent}>
+                      <Text style={styles.loadingText}>Loading Price Comparison...</Text>
+                    </View>
+                  )}
                 </View>
                 <View style={styles.detailsSection}>
                   {productData.productDetails && (
@@ -207,8 +231,20 @@ export default function ResultsScreen() {
               </View>
             ) : (
               <ScrollView style={styles.mobileResults} showsVerticalScrollIndicator={false} testID="resultsScroll">
-                <AIInsights data={productData.aiInsights} />
-                <PriceComparison data={productData.priceComparison} />
+                {productData.aiInsights ? (
+                  <AIInsights data={productData.aiInsights} />
+                ) : (
+                  <View style={styles.loadingComponent}>
+                    <Text style={styles.loadingText}>Loading AI Insights...</Text>
+                  </View>
+                )}
+                {productData.priceComparison && productData.priceComparison.length > 0 ? (
+                  <PriceComparison data={productData.priceComparison} />
+                ) : (
+                  <View style={styles.loadingComponent}>
+                    <Text style={styles.loadingText}>Loading Price Comparison...</Text>
+                  </View>
+                )}
                 {productData.productDetails && (
                   <ProductDetails 
                     productName={productData.productDetails.productName}
@@ -431,5 +467,24 @@ const styles = StyleSheet.create({
   fixedSendButtonDisabled: {
     backgroundColor: '#cbd5e1',
     shadowOpacity: 0.1,
+  },
+  loadingComponent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+    backgroundColor: '#ffffff',
+    margin: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#64748b',
+    textAlign: 'center',
   },
 });

@@ -29,6 +29,8 @@ export function PriceComparison({ data }: PriceComparisonProps) {
   const [sortBy, setSortBy] = useState<'price' | 'rating' | 'distance'>('price');
   
   console.log('PriceComparison received data:', data);
+  console.log('PriceComparison data type:', typeof data);
+  console.log('PriceComparison data length:', Array.isArray(data) ? data.length : 'not array');
   
   if (!data || !Array.isArray(data) || data.length === 0) {
     console.log('PriceComparison: No data or empty array provided');
@@ -520,5 +522,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748b',
     fontStyle: 'italic',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0f172a',
+    marginBottom: 12,
   },
 });

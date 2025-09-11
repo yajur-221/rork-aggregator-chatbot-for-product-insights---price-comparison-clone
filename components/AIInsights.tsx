@@ -24,12 +24,32 @@ export function AIInsights({ data }: AIInsightsProps) {
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
   
   console.log('AIInsights received data:', data);
+  console.log('AIInsights data type:', typeof data);
+  console.log('AIInsights data keys:', data ? Object.keys(data) : 'no data');
   
   if (!data) {
     console.log('AIInsights: No data provided');
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Loading AI Insights...</Text>
+        <View style={styles.header}>
+          <Lightbulb color="#2563eb" size={24} />
+          <Text style={styles.title}>AI Insights</Text>
+        </View>
+        <Text style={styles.sectionTitle}>Loading AI Insights...</Text>
+      </View>
+    );
+  }
+  
+  // Validate required fields
+  if (!data.howToUse || !data.tips || !data.pros || !data.cons || !data.generalInsights) {
+    console.log('AIInsights: Missing required fields in data');
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Lightbulb color="#2563eb" size={24} />
+          <Text style={styles.title}>AI Insights</Text>
+        </View>
+        <Text style={styles.sectionTitle}>Error loading AI insights. Please try again.</Text>
       </View>
     );
   }
