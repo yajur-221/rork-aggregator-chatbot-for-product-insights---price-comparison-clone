@@ -7,11 +7,12 @@ import {
   ScrollView,
   StyleSheet,
   SafeAreaView,
-
+  Platform,
 } from 'react-native';
 import { Send, History, Search, Sparkles } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
+import { Video, ResizeMode } from 'expo-av';
 
 
 
@@ -39,6 +40,26 @@ export default function ChatScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
+      {Platform.OS !== 'web' ? (
+        <Video
+          source={{ uri: 'https://cdn.pixabay.com/video/2016/09/14/5242-183786752_large.mp4' }}
+          style={styles.backgroundVideo}
+          shouldPlay
+          isLooping
+          isMuted
+          resizeMode={ResizeMode.COVER}
+        />
+      ) : (
+        <video
+          autoPlay
+          loop
+          muted
+          style={styles.webVideo as any}
+        >
+          <source src="https://cdn.pixabay.com/video/2016/09/14/5242-183786752_large.mp4" type="video/mp4" />
+        </video>
+      )}
+      <View style={styles.overlay} />
       <View style={styles.welcomeContainer}>
         <View style={styles.welcomeContent}>
           {/* Header with Logo */}
@@ -112,7 +133,22 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#000000',
+  },
+  backgroundVideo: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    right: 0,
+  },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
 
   // Welcome screen styles
@@ -121,7 +157,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
-    backgroundColor: '#ffffff',
+    zIndex: 1,
   },
   headerSection: {
     flexDirection: 'row',
@@ -139,11 +175,11 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1f2937',
+    color: '#ffffff',
   },
   historyButton: {
     padding: 12,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -154,18 +190,24 @@ const styles = StyleSheet.create({
   mainTitle: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#111827',
+    color: '#ffffff',
     textAlign: 'center',
     marginBottom: 12,
     lineHeight: 40,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6b7280',
+    color: '#e5e7eb',
     textAlign: 'center',
     marginBottom: 40,
     lineHeight: 24,
     paddingHorizontal: 20,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   welcomeContent: {
     alignItems: 'center',
@@ -184,15 +226,15 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f9fafb',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 25,
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderWidth: 2,
-    borderColor: '#e5e7eb',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 2,
   },
@@ -228,26 +270,38 @@ const styles = StyleSheet.create({
   historyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#666',
+    color: '#e5e7eb',
     marginBottom: 12,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   historyScroll: {
     flexDirection: 'row',
   },
   historyItem: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
     marginRight: 12,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: 'rgba(255, 255, 255, 0.3)',
     maxWidth: 150,
   },
   historyItemText: {
     fontSize: 14,
-    color: '#374151',
+    color: '#ffffff',
     fontWeight: '500',
+  },
+  webVideo: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    zIndex: -1,
   },
 
 });
