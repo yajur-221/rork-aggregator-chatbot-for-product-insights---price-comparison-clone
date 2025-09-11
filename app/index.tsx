@@ -111,24 +111,26 @@ export default function ChatScreen() {
               </View>
             </LiquidGlass>
             
-            <LiquidGlass
-              displacementScale={100}
-              blurAmount={0.08}
-              saturation={180}
-              elasticity={0.2}
-              mode="prominent"
-              cornerRadius={24}
-              style={styles.glassSendButton}
-            >
-              <TouchableOpacity
-                testID="homeSearchSend"
-                style={[styles.centerSendButton, !inputText.trim() && styles.centerSendButtonDisabled]}
-                onPress={() => handleSend()}
-                disabled={!inputText.trim()}
+            <View style={styles.buttonContainer}>
+              <LiquidGlass
+                displacementScale={100}
+                blurAmount={0.08}
+                saturation={180}
+                elasticity={0.2}
+                mode="prominent"
+                cornerRadius={24}
+                style={styles.glassSendButton}
               >
-                <Send color="#fff" size={18} />
-              </TouchableOpacity>
-            </LiquidGlass>
+                <TouchableOpacity
+                  testID="homeSearchSend"
+                  style={[styles.centerSendButton, !inputText.trim() && styles.centerSendButtonDisabled]}
+                  onPress={() => handleSend()}
+                  disabled={!inputText.trim()}
+                >
+                  <Send color="#fff" size={18} />
+                </TouchableOpacity>
+              </LiquidGlass>
+            </View>
           </View>
           
           {/* Search History */}
@@ -249,15 +251,16 @@ const styles = StyleSheet.create({
   },
 
   centerInputContainer: {
-    flexDirection: 'row',
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
     marginBottom: 20,
     paddingHorizontal: 20,
   },
   glassSearchWrapper: {
-    width: 300,
+    width: '100%',
+    maxWidth: 300,
+    marginBottom: 12,
   },
   searchInputWrapper: {
     flexDirection: 'row',
@@ -269,8 +272,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
+  buttonContainer: {
+    alignItems: 'center',
+    width: '100%',
+  },
   glassSendButton: {
     borderRadius: 24,
+    alignSelf: 'center',
   },
   searchIcon: {
     marginRight: 12,
