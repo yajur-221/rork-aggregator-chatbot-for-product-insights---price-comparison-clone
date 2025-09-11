@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     zIndex: 1,
   },
   logoContainer: {
@@ -246,14 +246,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     maxWidth: 700,
     width: '100%',
+    paddingHorizontal: 20,
   },
 
   centerInputContainer: {
     flexDirection: 'row',
     width: '100%',
+    maxWidth: 600,
     alignItems: 'flex-end',
     gap: 12,
     marginBottom: 20,
+    alignSelf: 'center',
   },
   glassSearchWrapper: {
     flex: 1,
