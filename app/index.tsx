@@ -250,15 +250,14 @@ const styles = StyleSheet.create({
 
   centerInputContainer: {
     flexDirection: 'row',
-    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
     marginBottom: 20,
+    paddingHorizontal: 20,
   },
   glassSearchWrapper: {
-    flex: 1,
-    maxWidth: 350,
+    width: 300,
   },
   searchInputWrapper: {
     flexDirection: 'row',
