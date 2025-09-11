@@ -13,6 +13,7 @@ import { Send, History, Search, Sparkles } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { Video, ResizeMode } from 'expo-av';
+import LiquidGlass from 'liquid-glass-react';
 
 
 
@@ -60,51 +61,74 @@ export default function ChatScreen() {
         </video>
       )}
       <View style={styles.overlay} />
+      
+      {/* Header with Logo and History at the top */}
+      <View style={styles.topHeader}>
+        <View style={styles.logoContainer}>
+          <Sparkles color="#2563eb" size={28} />
+          <Text style={styles.logoText}>PriceWise</Text>
+        </View>
+        <TouchableOpacity 
+          style={styles.historyButton}
+          onPress={() => {
+            console.log('Search history:', searchHistory);
+          }}
+        >
+          <History color="#ffffff" size={20} />
+        </TouchableOpacity>
+      </View>
+      
       <View style={styles.welcomeContainer}>
         <View style={styles.welcomeContent}>
-          {/* Header with Logo */}
-          <View style={styles.headerSection}>
-            <View style={styles.logoContainer}>
-              <Sparkles color="#2563eb" size={28} />
-              <Text style={styles.logoText}>PriceWise</Text>
-            </View>
-            <TouchableOpacity 
-              style={styles.historyButton}
-              onPress={() => {
-                console.log('Search history:', searchHistory);
-              }}
-            >
-              <History color="#6b7280" size={20} />
-            </TouchableOpacity>
-          </View>
-          
-          {/* Main Title */}
+          {/* Main Title in the middle */}
           <Text style={styles.mainTitle}>Find the best prices for any product</Text>
           <Text style={styles.subtitle}>Compare prices across multiple platforms and get AI-powered insights</Text>
           
+          {/* Glass Search Box */}
           <View style={styles.centerInputContainer}>
-            <View style={styles.searchInputWrapper}>
-              <Search color="#9ca3af" size={20} style={styles.searchIcon} />
-              <TextInput
-                testID="homeSearchInput"
-                style={styles.centerTextInput}
-                value={inputText}
-                onChangeText={setInputText}
-                placeholder="Search for any product..."
-                placeholderTextColor="#9ca3af"
-                multiline
-                maxLength={500}
-                onSubmitEditing={() => handleSend()}
-              />
-            </View>
-            <TouchableOpacity
-              testID="homeSearchSend"
-              style={[styles.centerSendButton, !inputText.trim() && styles.centerSendButtonDisabled]}
-              onPress={() => handleSend()}
-              disabled={!inputText.trim()}
+            <LiquidGlass
+              displacementScale={100}
+              blurAmount={0.08}
+              saturation={180}
+              elasticity={0.2}
+              mode="prominent"
+              cornerRadius={24}
+              style={styles.glassSearchWrapper}
             >
-              <Send color="#fff" size={18} />
-            </TouchableOpacity>
+              <View style={styles.searchInputWrapper}>
+                <Search color="#9ca3af" size={20} style={styles.searchIcon} />
+                <TextInput
+                  testID="homeSearchInput"
+                  style={styles.centerTextInput}
+                  value={inputText}
+                  onChangeText={setInputText}
+                  placeholder="Search for any product..."
+                  placeholderTextColor="#9ca3af"
+                  multiline
+                  maxLength={500}
+                  onSubmitEditing={() => handleSend()}
+                />
+              </View>
+            </LiquidGlass>
+            
+            <LiquidGlass
+              displacementScale={100}
+              blurAmount={0.08}
+              saturation={180}
+              elasticity={0.2}
+              mode="prominent"
+              cornerRadius={24}
+              style={styles.glassSendButton}
+            >
+              <TouchableOpacity
+                testID="homeSearchSend"
+                style={[styles.centerSendButton, !inputText.trim() && styles.centerSendButtonDisabled]}
+                onPress={() => handleSend()}
+                disabled={!inputText.trim()}
+              >
+                <Send color="#fff" size={18} />
+              </TouchableOpacity>
+            </LiquidGlass>
           </View>
           
           {/* Search History */}
@@ -151,6 +175,21 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
 
+  // Top header styles
+  topHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 60,
+    paddingBottom: 20,
+    zIndex: 2,
+  },
+  
   // Welcome screen styles
   welcomeContainer: {
     flex: 1,
@@ -158,14 +197,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
     zIndex: 1,
-  },
-  headerSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 48,
-    paddingTop: 20,
   },
   logoContainer: {
     flexDirection: 'row',
@@ -179,13 +210,15 @@ const styles = StyleSheet.create({
   },
   historyButton: {
     padding: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   mainTitle: {
     fontSize: 32,
@@ -222,21 +255,21 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 20,
   },
-  searchInputWrapper: {
+  glassSearchWrapper: {
     flex: 1,
+  },
+  searchInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 24,
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  glassSendButton: {
+    borderRadius: 24,
   },
   searchIcon: {
     marginRight: 12,
@@ -244,24 +277,20 @@ const styles = StyleSheet.create({
   centerTextInput: {
     flex: 1,
     fontSize: 16,
-    color: '#333',
+    color: '#ffffff',
     maxHeight: 120,
   },
   centerSendButton: {
-    backgroundColor: '#2563eb',
-    borderRadius: 25,
+    backgroundColor: 'rgba(37, 99, 235, 0.8)',
+    borderRadius: 24,
     padding: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   centerSendButtonDisabled: {
-    backgroundColor: '#d1d5db',
-    shadowOpacity: 0.1,
+    backgroundColor: 'rgba(209, 213, 219, 0.3)',
   },
   historyContainer: {
     width: '100%',
