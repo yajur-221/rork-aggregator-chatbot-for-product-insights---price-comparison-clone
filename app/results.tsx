@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,14 +9,12 @@ import {
   SafeAreaView,
   KeyboardAvoidingView,
   Platform,
-  useWindowDimensions,
 } from 'react-native';
 import { Send, Bot, History, ArrowLeft, Sparkles } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router, useLocalSearchParams } from 'expo-router';
 import { AIInsights } from '@/components/AIInsights';
 import { PriceComparison } from '@/components/PriceComparison';
-import { ProductDetails } from '@/components/ProductDetails';
 import { useLocation } from '@/hooks/useLocation';
 import { generateAIResponse } from '@/services/aiService';
 import { fetchPriceComparison } from '@/services/priceService';
@@ -40,8 +38,6 @@ interface ProductData {
 
 export default function ResultsScreen() {
   const { query } = useLocalSearchParams<{ query: string }>();
-  const { width } = useWindowDimensions();
-  const isTablet = useMemo(() => width > 768, [width]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [productData, setProductData] = useState<ProductData | null>(null);
@@ -60,70 +56,81 @@ export default function ResultsScreen() {
 
 
 
-  useEffect(() => {
-    if (!query) return;
-
+  const loadProductData = useCallback(async (searchQuery: string) => {
+    if (!searchQuery || !searchQuery.trim() || searchQuery.length > 200) return;
+    
+    const sanitizedQuery = searchQuery.trim();
+    setIsLoading(true);
+    setProductData(null);
+    
     const abortController = new AbortController();
-
-    const load = async () => {
-      setIsLoading(true);
-      try {
-        if (!abortController.signal.aborted) {
-          if (!location) {
-            await requestLocation();
-          }
-        }
-        if (abortController.signal.aborted) return;
-        const [aiInsights, priceComparison] = await Promise.all([
-          generateAIResponse(query as string),
-          fetchPriceComparison(query as string, location)
-        ]);
-        if (abortController.signal.aborted) return;
-        const productDetails = {
-          productName: query as string,
-          overallRating: Math.round((Math.random() * 1.5 + 3.5) * 10) / 10,
-          totalReviews: Math.floor(Math.random() * 2000) + 500,
-          reviews: [
-            { id: '1', userName: 'Rajesh Kumar', rating: 5, comment: 'Excellent product! Great value for money. Highly recommended for anyone looking for quality and performance.', date: '2 days ago', helpful: 23, verified: true },
-            { id: '2', userName: 'Priya Sharma', rating: 4, comment: 'Good product overall. The build quality is solid and it works as expected. Minor issues with setup but customer service was helpful.', date: '1 week ago', helpful: 15, verified: true },
-            { id: '3', userName: 'Amit Singh', rating: 3, comment: 'Average product. Does the job but nothing exceptional. Price could be better for what you get.', date: '2 weeks ago', helpful: 8, verified: false },
-            { id: '4', userName: 'Sneha Patel', rating: 5, comment: 'Amazing! Exceeded my expectations. Fast delivery and excellent packaging. Will definitely buy again.', date: '3 weeks ago', helpful: 31, verified: true },
-            { id: '5', userName: 'Vikram Gupta', rating: 4, comment: 'Solid choice. Good features and reliable performance. Shipping was quick and product arrived in perfect condition.', date: '1 month ago', helpful: 12, verified: true }
-          ],
-          marketTrends: {
-            priceHistory: [
-              { month: 'Aug', price: Math.floor(Math.random() * 5000) + 20000 },
-              { month: 'Sep', price: Math.floor(Math.random() * 5000) + 22000 },
-              { month: 'Oct', price: Math.floor(Math.random() * 5000) + 21000 },
-              { month: 'Nov', price: Math.floor(Math.random() * 5000) + 23000 },
-              { month: 'Dec', price: Math.floor(Math.random() * 5000) + 24000 },
-              { month: 'Jan', price: Math.floor(Math.random() * 5000) + 25000 }
-            ],
-            popularityScore: Math.floor(Math.random() * 30) + 70,
-            demandTrend: ['increasing', 'stable', 'decreasing'][Math.floor(Math.random() * 3)] as 'increasing' | 'stable' | 'decreasing'
-          }
-        };
-        setProductData({ aiInsights, priceComparison, productDetails });
-      } catch (error) {
-        console.error('Error processing request:', error);
-        setProductData(null);
-      } finally {
-        if (!abortController.signal.aborted) {
-          setIsLoading(false);
-        }
+    
+    try {
+      if (!location) {
+        await requestLocation();
       }
-    };
-
-    load();
-
+      
+      if (abortController.signal.aborted) return;
+      
+      const [aiInsights, priceComparison] = await Promise.all([
+        generateAIResponse(sanitizedQuery),
+        fetchPriceComparison(sanitizedQuery, location)
+      ]);
+      
+      if (abortController.signal.aborted) return;
+      
+      const productDetails = {
+        productName: sanitizedQuery,
+        overallRating: Math.round((Math.random() * 1.5 + 3.5) * 10) / 10,
+        totalReviews: Math.floor(Math.random() * 2000) + 500,
+        reviews: [
+          { id: '1', userName: 'Rajesh Kumar', rating: 5, comment: 'Excellent product! Great value for money. Highly recommended for anyone looking for quality and performance.', date: '2 days ago', helpful: 23, verified: true },
+          { id: '2', userName: 'Priya Sharma', rating: 4, comment: 'Good product overall. The build quality is solid and it works as expected. Minor issues with setup but customer service was helpful.', date: '1 week ago', helpful: 15, verified: true },
+          { id: '3', userName: 'Amit Singh', rating: 3, comment: 'Average product. Does the job but nothing exceptional. Price could be better for what you get.', date: '2 weeks ago', helpful: 8, verified: false },
+          { id: '4', userName: 'Sneha Patel', rating: 5, comment: 'Amazing! Exceeded my expectations. Fast delivery and excellent packaging. Will definitely buy again.', date: '3 weeks ago', helpful: 31, verified: true },
+          { id: '5', userName: 'Vikram Gupta', rating: 4, comment: 'Solid choice. Good features and reliable performance. Shipping was quick and product arrived in perfect condition.', date: '1 month ago', helpful: 12, verified: true }
+        ],
+        marketTrends: {
+          priceHistory: [
+            { month: 'Aug', price: Math.floor(Math.random() * 5000) + 20000 },
+            { month: 'Sep', price: Math.floor(Math.random() * 5000) + 22000 },
+            { month: 'Oct', price: Math.floor(Math.random() * 5000) + 21000 },
+            { month: 'Nov', price: Math.floor(Math.random() * 5000) + 23000 },
+            { month: 'Dec', price: Math.floor(Math.random() * 5000) + 24000 },
+            { month: 'Jan', price: Math.floor(Math.random() * 5000) + 25000 }
+          ],
+          popularityScore: Math.floor(Math.random() * 30) + 70,
+          demandTrend: ['increasing', 'stable', 'decreasing'][Math.floor(Math.random() * 3)] as 'increasing' | 'stable' | 'decreasing'
+        }
+      };
+      
+      if (!abortController.signal.aborted) {
+        setProductData({ aiInsights, priceComparison, productDetails });
+      }
+    } catch (error) {
+      console.error('Error processing request:', error);
+      if (!abortController.signal.aborted) {
+        setProductData(null);
+      }
+    } finally {
+      if (!abortController.signal.aborted) {
+        setIsLoading(false);
+      }
+    }
+    
     return () => {
       abortController.abort();
     };
-  }, [query]);
+  }, [location, requestLocation]);
+
+  useEffect(() => {
+    if (!query) return;
+    loadProductData(query as string);
+  }, [query, loadProductData]);
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <TouchableOpacity 
@@ -133,7 +140,7 @@ export default function ResultsScreen() {
             <ArrowLeft color="#374151" size={24} />
           </TouchableOpacity>
           <View style={styles.logoContainer}>
-            <Sparkles color="#2563eb" size={20} />
+            <Sparkles color="#1f2937" size={20} />
             <Text style={styles.headerTitle}>PriceWise</Text>
           </View>
           <TouchableOpacity 
@@ -153,7 +160,7 @@ export default function ResultsScreen() {
       >
         {isLoading ? (
           <View style={styles.loadingScreen}>
-            <Bot color="#2563eb" size={48} />
+            <Bot color="#1f2937" size={48} />
             <Text style={styles.loadingTitle}>Analyzing Product...</Text>
             <Text style={styles.loadingSubtitle}>Getting AI insights and comparing prices</Text>
             <View style={styles.loadingSteps}>
@@ -164,41 +171,10 @@ export default function ResultsScreen() {
             </View>
           </View>
         ) : productData ? (
-          isTablet ? (
-            <View style={styles.tabletLayout}>
-              <View style={styles.insightsSection}>
-                <AIInsights data={productData.aiInsights} />
-              </View>
-              <View style={styles.priceSection}>
-                <PriceComparison data={productData.priceComparison} />
-              </View>
-              <View style={styles.detailsSection}>
-                {productData.productDetails && (
-                  <ProductDetails 
-                    productName={productData.productDetails.productName}
-                    overallRating={productData.productDetails.overallRating}
-                    totalReviews={productData.productDetails.totalReviews}
-                    reviews={productData.productDetails.reviews}
-                    marketTrends={productData.productDetails.marketTrends}
-                  />
-                )}
-              </View>
-            </View>
-          ) : (
-            <ScrollView style={styles.mobileResults} showsVerticalScrollIndicator={false} testID="resultsScroll">
-              <AIInsights data={productData.aiInsights} />
-              <PriceComparison data={productData.priceComparison} />
-              {productData.productDetails && (
-                <ProductDetails 
-                  productName={productData.productDetails.productName}
-                  overallRating={productData.productDetails.overallRating}
-                  totalReviews={productData.productDetails.totalReviews}
-                  reviews={productData.productDetails.reviews}
-                  marketTrends={productData.productDetails.marketTrends}
-                />
-              )}
-            </ScrollView>
-          )
+          <ScrollView style={styles.mobileResults} showsVerticalScrollIndicator={false} testID="resultsScroll">
+            <AIInsights data={productData.aiInsights} />
+            <PriceComparison data={productData.priceComparison} />
+          </ScrollView>
         ) : (
           <View style={styles.errorScreen}>
             <Text style={styles.errorTitle}>No results found</Text>
@@ -221,7 +197,7 @@ export default function ResultsScreen() {
           />
           <TouchableOpacity
             testID="bottomSearchSend"
-            style={[styles.fixedSendButton, (!inputText.trim() || isLoading) && styles.fixedSendButtonDisabled]}
+            style={(!inputText.trim() || isLoading) ? styles.fixedSendButtonDisabled : styles.fixedSendButton}
             onPress={() => handleSend()}
             disabled={!inputText.trim() || isLoading}
           >
@@ -394,12 +370,12 @@ const styles = StyleSheet.create({
     color: '#0f172a',
   },
   fixedSendButton: {
-    backgroundColor: '#2563eb',
+    backgroundColor: '#1f2937',
     borderRadius: 20,
     padding: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#2563eb',
+    shadowColor: '#1f2937',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
