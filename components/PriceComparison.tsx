@@ -49,7 +49,7 @@ export function PriceComparison({ data }: PriceComparisonProps) {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
-        <ShoppingCart color="#2563eb" size={24} />
+        <ShoppingCart color="#1f2937" size={24} />
         <Text style={styles.title}>Price Comparison</Text>
       </View>
 
@@ -82,14 +82,14 @@ export function PriceComparison({ data }: PriceComparisonProps) {
                   style={styles.linkButton}
                   onPress={() => openLink(item.link!)}
                 >
-                  <ExternalLink color="#2563eb" size={16} />
+                  <ExternalLink color="#1f2937" size={16} />
                 </TouchableOpacity>
               ) : item.sourceType === 'local' && item.phone ? (
                 <TouchableOpacity
                   style={styles.linkButton}
                   onPress={() => callPhone(item.phone!)}
                 >
-                  <Phone color="#2563eb" size={16} />
+                  <Phone color="#1f2937" size={16} />
                 </TouchableOpacity>
               ) : (
                 <Text style={styles.noLinkText}>-</Text>
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#111827',
+    color: '#0f172a',
   },
   tableHeader: {
     flexDirection: 'row',
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
-    color: '#111827',
+    color: '#1f2937',
     textAlign: 'center',
   },
   tableContainer: {
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
   storeName: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#111827',
+    color: '#1f2937',
   },
   bestPriceLabel: {
     fontSize: 10,
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
   priceText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#111827',
+    color: '#1f2937',
   },
   originalPriceSmall: {
     fontSize: 12,
