@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -56,77 +56,86 @@ export default function ResultsScreen() {
 
 
 
-  const loadProductData = useCallback(async (searchQuery: string) => {
-    if (!searchQuery || !searchQuery.trim() || searchQuery.length > 200) return;
-    
-    const sanitizedQuery = searchQuery.trim();
-    setIsLoading(true);
-    setProductData(null);
-    
-    const abortController = new AbortController();
-    
-    try {
-      if (!location) {
-        await requestLocation();
-      }
-      
-      if (abortController.signal.aborted) return;
-      
-      const [aiInsights, priceComparison] = await Promise.all([
-        generateAIResponse(sanitizedQuery),
-        fetchPriceComparison(sanitizedQuery, location)
-      ]);
-      
-      if (abortController.signal.aborted) return;
-      
-      const productDetails = {
-        productName: sanitizedQuery,
-        overallRating: Math.round((Math.random() * 1.5 + 3.5) * 10) / 10,
-        totalReviews: Math.floor(Math.random() * 2000) + 500,
-        reviews: [
-          { id: '1', userName: 'Rajesh Kumar', rating: 5, comment: 'Excellent product! Great value for money. Highly recommended for anyone looking for quality and performance.', date: '2 days ago', helpful: 23, verified: true },
-          { id: '2', userName: 'Priya Sharma', rating: 4, comment: 'Good product overall. The build quality is solid and it works as expected. Minor issues with setup but customer service was helpful.', date: '1 week ago', helpful: 15, verified: true },
-          { id: '3', userName: 'Amit Singh', rating: 3, comment: 'Average product. Does the job but nothing exceptional. Price could be better for what you get.', date: '2 weeks ago', helpful: 8, verified: false },
-          { id: '4', userName: 'Sneha Patel', rating: 5, comment: 'Amazing! Exceeded my expectations. Fast delivery and excellent packaging. Will definitely buy again.', date: '3 weeks ago', helpful: 31, verified: true },
-          { id: '5', userName: 'Vikram Gupta', rating: 4, comment: 'Solid choice. Good features and reliable performance. Shipping was quick and product arrived in perfect condition.', date: '1 month ago', helpful: 12, verified: true }
-        ],
-        marketTrends: {
-          priceHistory: [
-            { month: 'Aug', price: Math.floor(Math.random() * 5000) + 20000 },
-            { month: 'Sep', price: Math.floor(Math.random() * 5000) + 22000 },
-            { month: 'Oct', price: Math.floor(Math.random() * 5000) + 21000 },
-            { month: 'Nov', price: Math.floor(Math.random() * 5000) + 23000 },
-            { month: 'Dec', price: Math.floor(Math.random() * 5000) + 24000 },
-            { month: 'Jan', price: Math.floor(Math.random() * 5000) + 25000 }
-          ],
-          popularityScore: Math.floor(Math.random() * 30) + 70,
-          demandTrend: ['increasing', 'stable', 'decreasing'][Math.floor(Math.random() * 3)] as 'increasing' | 'stable' | 'decreasing'
-        }
-      };
-      
-      if (!abortController.signal.aborted) {
-        setProductData({ aiInsights, priceComparison, productDetails });
-      }
-    } catch (error) {
-      console.error('Error processing request:', error);
-      if (!abortController.signal.aborted) {
-        setProductData(null);
-      }
-    } finally {
-      if (!abortController.signal.aborted) {
-        setIsLoading(false);
-      }
-    }
-    
-    return () => {
-      abortController.abort();
-    };
-  }, [location, requestLocation]);
+
 
   useEffect(() => {
     if (!query) return;
-    loadProductData(query as string);
-  }, [query, loadProductData]);
+    
+    let abortController: AbortController;
+    
+    const fetchData = async () => {
+      const sanitizedQuery = (query as string).trim();
+      if (!sanitizedQuery || sanitizedQuery.length > 200) return;
+      
+      setIsLoading(true);
+      setProductData(null);
+      
+      abortController = new AbortController();
+      
+      try {
+        let currentLocation = location;
+        if (!currentLocation) {
+          await requestLocation();
+          currentLocation = location;
+        }
+        
+        if (abortController.signal.aborted) return;
+        
+        const [aiInsights, priceComparison] = await Promise.all([
+          generateAIResponse(sanitizedQuery),
+          fetchPriceComparison(sanitizedQuery, currentLocation)
+        ]);
+        
+        if (abortController.signal.aborted) return;
+        
+        const productDetails = {
+          productName: sanitizedQuery,
+          overallRating: Math.round((Math.random() * 1.5 + 3.5) * 10) / 10,
+          totalReviews: Math.floor(Math.random() * 2000) + 500,
+          reviews: [
+            { id: '1', userName: 'Rajesh Kumar', rating: 5, comment: 'Excellent product! Great value for money. Highly recommended for anyone looking for quality and performance.', date: '2 days ago', helpful: 23, verified: true },
+            { id: '2', userName: 'Priya Sharma', rating: 4, comment: 'Good product overall. The build quality is solid and it works as expected. Minor issues with setup but customer service was helpful.', date: '1 week ago', helpful: 15, verified: true },
+            { id: '3', userName: 'Amit Singh', rating: 3, comment: 'Average product. Does the job but nothing exceptional. Price could be better for what you get.', date: '2 weeks ago', helpful: 8, verified: false },
+            { id: '4', userName: 'Sneha Patel', rating: 5, comment: 'Amazing! Exceeded my expectations. Fast delivery and excellent packaging. Will definitely buy again.', date: '3 weeks ago', helpful: 31, verified: true },
+            { id: '5', userName: 'Vikram Gupta', rating: 4, comment: 'Solid choice. Good features and reliable performance. Shipping was quick and product arrived in perfect condition.', date: '1 month ago', helpful: 12, verified: true }
+          ],
+          marketTrends: {
+            priceHistory: [
+              { month: 'Aug', price: Math.floor(Math.random() * 5000) + 20000 },
+              { month: 'Sep', price: Math.floor(Math.random() * 5000) + 22000 },
+              { month: 'Oct', price: Math.floor(Math.random() * 5000) + 21000 },
+              { month: 'Nov', price: Math.floor(Math.random() * 5000) + 23000 },
+              { month: 'Dec', price: Math.floor(Math.random() * 5000) + 24000 },
+              { month: 'Jan', price: Math.floor(Math.random() * 5000) + 25000 }
+            ],
+            popularityScore: Math.floor(Math.random() * 30) + 70,
+            demandTrend: ['increasing', 'stable', 'decreasing'][Math.floor(Math.random() * 3)] as 'increasing' | 'stable' | 'decreasing'
+          }
+        };
+        
+        if (!abortController.signal.aborted) {
+          setProductData({ aiInsights, priceComparison, productDetails });
+        }
+      } catch (error) {
+        console.error('Error processing request:', error);
+        if (!abortController.signal.aborted) {
+          setProductData(null);
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    fetchData();
+    
+    return () => {
+      if (abortController) {
+        abortController.abort();
+      }
+    };
+  }, [query, location, requestLocation]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -197,7 +206,7 @@ export default function ResultsScreen() {
           />
           <TouchableOpacity
             testID="bottomSearchSend"
-            style={(!inputText.trim() || isLoading) ? styles.fixedSendButtonDisabled : styles.fixedSendButton}
+            style={[styles.fixedSendButton, (!inputText.trim() || isLoading) && styles.fixedSendButtonDisabled]}
             onPress={() => handleSend()}
             disabled={!inputText.trim() || isLoading}
           >
