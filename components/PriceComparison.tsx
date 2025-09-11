@@ -28,6 +28,21 @@ export function PriceComparison({ data }: PriceComparisonProps) {
   const [filterType, setFilterType] = useState<'all' | 'online' | 'local'>('all');
   const [sortBy, setSortBy] = useState<'price' | 'rating' | 'distance'>('price');
   
+  console.log('PriceComparison received data:', data);
+  
+  if (!data || !Array.isArray(data) || data.length === 0) {
+    console.log('PriceComparison: No data or empty array provided');
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <ShoppingCart color="#2563eb" size={24} />
+          <Text style={styles.title}>Price Comparison</Text>
+        </View>
+        <Text style={styles.title}>Loading price comparison...</Text>
+      </View>
+    );
+  }
+  
   const filteredData = data.filter(item => {
     if (filterType === 'all') return true;
     return item.sourceType === filterType;

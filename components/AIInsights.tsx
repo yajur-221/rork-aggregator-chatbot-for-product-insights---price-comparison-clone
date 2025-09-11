@@ -23,6 +23,17 @@ interface AIInsightsProps {
 export function AIInsights({ data }: AIInsightsProps) {
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
   
+  console.log('AIInsights received data:', data);
+  
+  if (!data) {
+    console.log('AIInsights: No data provided');
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Loading AI Insights...</Text>
+      </View>
+    );
+  }
+  
   const openLink = (url: string) => {
     Linking.openURL(url);
   };

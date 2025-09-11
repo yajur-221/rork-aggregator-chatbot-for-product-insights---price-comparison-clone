@@ -66,19 +66,30 @@ export default function ResultsScreen() {
     const abortController = new AbortController();
 
     const load = async () => {
+      console.log('Starting data load for query:', query);
       setIsLoading(true);
+      setProductData(null); // Clear previous data
+      
       try {
-        if (!abortController.signal.aborted) {
-          if (!location) {
-            await requestLocation();
-          }
+        // Request location if not available
+        if (!location) {
+          console.log('Requesting location...');
+          await requestLocation();
         }
+        
         if (abortController.signal.aborted) return;
+        
+        console.log('Fetching AI insights and price comparison...');
         const [aiInsights, priceComparison] = await Promise.all([
           generateAIResponse(query as string),
           fetchPriceComparison(query as string, location)
         ]);
+        
         if (abortController.signal.aborted) return;
+        
+        console.log('AI insights received:', aiInsights ? 'Success' : 'Failed');
+        console.log('Price comparison received:', priceComparison ? `${priceComparison.length} items` : 'Failed');
+        
         const productDetails = {
           productName: query as string,
           overallRating: Math.round((Math.random() * 1.5 + 3.5) * 10) / 10,
@@ -103,7 +114,10 @@ export default function ResultsScreen() {
             demandTrend: ['increasing', 'stable', 'decreasing'][Math.floor(Math.random() * 3)] as 'increasing' | 'stable' | 'decreasing'
           }
         };
-        setProductData({ aiInsights, priceComparison, productDetails });
+        
+        const newProductData = { aiInsights, priceComparison, productDetails };
+        console.log('Setting product data:', newProductData);
+        setProductData(newProductData);
       } catch (error) {
         console.error('Error processing request:', error);
         setProductData(null);
@@ -119,7 +133,7 @@ export default function ResultsScreen() {
     return () => {
       abortController.abort();
     };
-  }, [query]);
+  }, [query, location, requestLocation]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -164,15 +178,37 @@ export default function ResultsScreen() {
             </View>
           </View>
         ) : productData ? (
-          isTablet ? (
-            <View style={styles.tabletLayout}>
-              <View style={styles.insightsSection}>
+          (() => {
+            console.log('Rendering results with productData:', {
+              hasAiInsights: !!productData.aiInsights,
+              hasPriceComparison: !!productData.priceComparison,
+              priceComparisonLength: productData.priceComparison?.length,
+              hasProductDetails: !!productData.productDetails
+            });
+            return isTablet ? (
+              <View style={styles.tabletLayout}>
+                <View style={styles.insightsSection}>
+                  <AIInsights data={productData.aiInsights} />
+                </View>
+                <View style={styles.priceSection}>
+                  <PriceComparison data={productData.priceComparison} />
+                </View>
+                <View style={styles.detailsSection}>
+                  {productData.productDetails && (
+                    <ProductDetails 
+                      productName={productData.productDetails.productName}
+                      overallRating={productData.productDetails.overallRating}
+                      totalReviews={productData.productDetails.totalReviews}
+                      reviews={productData.productDetails.reviews}
+                      marketTrends={productData.productDetails.marketTrends}
+                    />
+                  )}
+                </View>
+              </View>
+            ) : (
+              <ScrollView style={styles.mobileResults} showsVerticalScrollIndicator={false} testID="resultsScroll">
                 <AIInsights data={productData.aiInsights} />
-              </View>
-              <View style={styles.priceSection}>
                 <PriceComparison data={productData.priceComparison} />
-              </View>
-              <View style={styles.detailsSection}>
                 {productData.productDetails && (
                   <ProductDetails 
                     productName={productData.productDetails.productName}
@@ -182,27 +218,14 @@ export default function ResultsScreen() {
                     marketTrends={productData.productDetails.marketTrends}
                   />
                 )}
-              </View>
-            </View>
-          ) : (
-            <ScrollView style={styles.mobileResults} showsVerticalScrollIndicator={false} testID="resultsScroll">
-              <AIInsights data={productData.aiInsights} />
-              <PriceComparison data={productData.priceComparison} />
-              {productData.productDetails && (
-                <ProductDetails 
-                  productName={productData.productDetails.productName}
-                  overallRating={productData.productDetails.overallRating}
-                  totalReviews={productData.productDetails.totalReviews}
-                  reviews={productData.productDetails.reviews}
-                  marketTrends={productData.productDetails.marketTrends}
-                />
-              )}
-            </ScrollView>
-          )
+              </ScrollView>
+            );
+          })()
         ) : (
           <View style={styles.errorScreen}>
             <Text style={styles.errorTitle}>No results found</Text>
             <Text style={styles.errorSubtitle}>Try searching for a different product</Text>
+            <Text style={styles.errorSubtitle}>Debug: productData is {productData ? 'not null but empty' : 'null'}</Text>
           </View>
         )}
 
