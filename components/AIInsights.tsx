@@ -156,24 +156,7 @@ export function AIInsights({ data }: AIInsightsProps) {
         ))}
       </View>
 
-      {/* User Rating & Reviews */}
-      {data.userRating && (
-        <View style={styles.section}>
-          <View style={styles.ratingHeader}>
-            <Award color="#f59e0b" size={20} />
-            <Text style={styles.sectionTitle}>User Rating</Text>
-          </View>
-          <View style={styles.ratingContainer}>
-            <View style={styles.starsContainer}>
-              {renderStars(data.userRating)}
-            </View>
-            <Text style={styles.ratingText}>{data.userRating}/5.0</Text>
-          </View>
-          {data.reviewSummary && (
-            <Text style={styles.reviewSummary}>{data.reviewSummary}</Text>
-          )}
-        </View>
-      )}
+
 
       {/* Specifications */}
       {data.specifications && (
@@ -209,27 +192,7 @@ export function AIInsights({ data }: AIInsightsProps) {
         </View>
       )}
 
-      {/* FAQs */}
-      {data.faqs && data.faqs.length > 0 && (
-        <View style={styles.section}>
-          <View style={styles.faqHeader}>
-            <HelpCircle color="#2563eb" size={20} />
-            <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
-          </View>
-          {data.faqs.map((faq, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.faqItem}
-              onPress={() => setExpandedFAQ(expandedFAQ === index ? null : index)}
-            >
-              <Text style={styles.faqQuestion}>{faq.question}</Text>
-              {expandedFAQ === index && (
-                <Text style={styles.faqAnswer}>{faq.answer}</Text>
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
+
 
       {/* Warranty & Availability */}
       {(data.warranty || data.availability) && (

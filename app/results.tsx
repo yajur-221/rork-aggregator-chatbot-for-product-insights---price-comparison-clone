@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   Platform,
   useWindowDimensions,
 } from 'react-native';
-import { Send, Bot, History, ArrowLeft, Sparkles } from 'lucide-react-native';
+import { Send, Bot, History, ArrowLeft, Sparkles, Search } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router, useLocalSearchParams } from 'expo-router';
 import { AIInsights } from '@/components/AIInsights';
@@ -46,6 +46,8 @@ export default function ResultsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [productData, setProductData] = useState<ProductData | null>(null);
   const { location, requestLocation } = useLocation();
+  const scrollViewRef = useRef<ScrollView>(null);
+  const aiInsightsRef = useRef<View>(null);
 
   const handleSend = async (searchQuery?: string) => {
     const newQuery = searchQuery || inputText.trim();
@@ -230,14 +232,7 @@ export default function ResultsScreen() {
                 </View>
               </View>
             ) : (
-              <ScrollView style={styles.mobileResults} showsVerticalScrollIndicator={false} testID="resultsScroll">
-                {productData.aiInsights ? (
-                  <AIInsights data={productData.aiInsights} />
-                ) : (
-                  <View style={styles.loadingComponent}>
-                    <Text style={styles.loadingText}>Loading AI Insights...</Text>
-                  </View>
-                )}
+              <ScrollView ref={scrollViewRef} style={styles.mobileResults} showsVerticalScrollIndicator={false} testID="resultsScroll">
                 {productData.priceComparison && productData.priceComparison.length > 0 ? (
                   <PriceComparison data={productData.priceComparison} />
                 ) : (
@@ -245,6 +240,15 @@ export default function ResultsScreen() {
                     <Text style={styles.loadingText}>Loading Price Comparison...</Text>
                   </View>
                 )}
+                <View ref={aiInsightsRef}>
+                  {productData.aiInsights ? (
+                    <AIInsights data={productData.aiInsights} />
+                  ) : (
+                    <View style={styles.loadingComponent}>
+                      <Text style={styles.loadingText}>Loading AI Insights...</Text>
+                    </View>
+                  )}
+                </View>
                 {productData.productDetails && (
                   <ProductDetails 
                     productName={productData.productDetails.productName}
@@ -263,6 +267,24 @@ export default function ResultsScreen() {
             <Text style={styles.errorSubtitle}>Try searching for a different product</Text>
             <Text style={styles.errorSubtitle}>Debug: productData is {productData ? 'not null but empty' : 'null'}</Text>
           </View>
+        )}
+
+        {/* Floating scroll to insights button */}
+        {!isLoading && productData && !isTablet && (
+          <TouchableOpacity
+            style={styles.floatingButton}
+            onPress={() => {
+              aiInsightsRef.current?.measureLayout(
+                scrollViewRef.current?.getScrollableNode() as any,
+                (x, y) => {
+                  scrollViewRef.current?.scrollTo({ y: y - 100, animated: true });
+                },
+                () => {}
+              );
+            }}
+          >
+            <Search color="#fff" size={20} />
+          </TouchableOpacity>
         )}
 
         {/* Fixed search bar at bottom */}
@@ -486,5 +508,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#64748b',
     textAlign: 'center',
+  },
+  floatingButton: {
+    position: 'absolute',
+    right: 20,
+    bottom: 100,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#2563eb',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 1000,
   },
 });
