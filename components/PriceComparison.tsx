@@ -96,53 +96,13 @@ export function PriceComparison({ data }: PriceComparisonProps) {
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
       <View style={styles.header}>
         <ShoppingCart color="#2563eb" size={24} />
         <Text style={styles.title}>Price Comparison</Text>
       </View>
 
-      {/* Filter and Sort Controls */}
-      <View style={styles.controlsContainer}>
-        <View style={styles.filterContainer}>
-          <Filter color="#2563eb" size={16} />
-          <TouchableOpacity
-            style={[styles.filterButton, filterType === 'all' && styles.activeFilter]}
-            onPress={() => setFilterType('all')}
-          >
-            <Text style={[styles.filterText, filterType === 'all' && styles.activeFilterText]}>All</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterButton, filterType === 'online' && styles.activeFilter]}
-            onPress={() => setFilterType('online')}
-          >
-            <Text style={[styles.filterText, filterType === 'online' && styles.activeFilterText]}>Online</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterButton, filterType === 'local' && styles.activeFilter]}
-            onPress={() => setFilterType('local')}
-          >
-            <Text style={[styles.filterText, filterType === 'local' && styles.activeFilterText]}>Local</Text>
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.sortContainer}>
-          <Text style={styles.sortLabel}>Sort:</Text>
-          <TouchableOpacity
-            style={[styles.sortButton, sortBy === 'price' && styles.activeSort]}
-            onPress={() => setSortBy('price')}
-          >
-            <Text style={[styles.sortText, sortBy === 'price' && styles.activeSortText]}>Price</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.sortButton, sortBy === 'rating' && styles.activeSort]}
-            onPress={() => setSortBy('rating')}
-          >
-            <Text style={[styles.sortText, sortBy === 'rating' && styles.activeSortText]}>Rating</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
+      {/* Stats Summary */}
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>{sortedData.length}</Text>
@@ -158,105 +118,93 @@ export function PriceComparison({ data }: PriceComparisonProps) {
           </Text>
           <Text style={styles.statLabel}>Max Savings</Text>
         </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>
-            {Math.round((sortedData.reduce((acc, item) => acc + (item.rating || 0), 0) / sortedData.length) * 10) / 10 || 0}
-          </Text>
-          <Text style={styles.statLabel}>Avg Rating</Text>
-        </View>
       </View>
 
-      <View style={styles.listContainer}>
+      {/* Table Header */}
+      <View style={styles.tableHeader}>
+        <Text style={styles.tableHeaderText}>Store</Text>
+        <Text style={styles.tableHeaderText}>Price</Text>
+        <Text style={styles.tableHeaderText}>Rating</Text>
+        <Text style={styles.tableHeaderText}>Action</Text>
+      </View>
+
+      {/* Table Content */}
+      <ScrollView style={styles.tableContainer} showsVerticalScrollIndicator={false}>
         {sortedData.map((item, index) => (
-          <View key={item.id} style={[styles.priceItem, index === 0 && styles.bestPrice]}>
+          <View key={item.id} style={[styles.tableRow, index === 0 && styles.bestPriceRow]}>
             {index === 0 && (
               <View style={styles.bestPriceBadge}>
-                <Text style={styles.bestPriceText}>BEST PRICE</Text>
+                <Text style={styles.bestPriceText}>BEST</Text>
               </View>
             )}
             
-            <View style={styles.itemHeader}>
-              <Image source={{ uri: item.image }} style={styles.productImage} />
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
-                <View style={styles.sourceRow}>
-                  <Text style={styles.sourceName}>{item.source}</Text>
-                  {item.stockStatus && (
-                    <View style={[styles.stockBadge, item.stockStatus === 'In Stock' ? styles.inStock : styles.limitedStock]}>
-                      <Text style={styles.stockText}>{item.stockStatus}</Text>
-                    </View>
+            {/* Store Column */}
+            <View style={styles.storeColumn}>
+              <View style={styles.storeInfo}>
+                <Text style={styles.storeName} numberOfLines={1}>{item.source}</Text>
+                <View style={styles.storeDetails}>
+                  <Text style={styles.storeType}>{item.sourceType === 'online' ? '🌐 Online' : '🏪 Local'}</Text>
+                  {item.sourceType === 'local' && item.distance && (
+                    <Text style={styles.distance}>{item.distance.toFixed(1)}km</Text>
+                  )}
+                  {item.deliveryTime && (
+                    <Text style={styles.delivery}>{item.deliveryTime}</Text>
                   )}
                 </View>
-                
-                {/* Rating */}
-                {item.rating && (
-                  <View style={styles.ratingRow}>
-                    <View style={styles.starsContainer}>
-                      {renderStars(item.rating)}
-                    </View>
-                    <Text style={styles.ratingText}>{item.rating}</Text>
-                    {item.reviewCount && (
-                      <Text style={styles.reviewCount}>({item.reviewCount})</Text>
-                    )}
-                  </View>
-                )}
-                
-                {/* Location/Delivery Info */}
-                {item.sourceType === 'local' && item.distance ? (
-                  <View style={styles.locationInfo}>
-                    <MapPin color="#666" size={12} />
-                    <Text style={styles.distanceText}>{item.distance.toFixed(1)} km away</Text>
-                  </View>
-                ) : item.deliveryTime ? (
-                  <View style={styles.locationInfo}>
-                    <Truck color="#666" size={12} />
-                    <Text style={styles.distanceText}>{item.deliveryTime}</Text>
-                  </View>
-                ) : null}
               </View>
             </View>
 
-            <View style={styles.priceContainer}>
+            {/* Price Column */}
+            <View style={styles.priceColumn}>
               <Text style={styles.currentPrice}>{formatPrice(item.price)}</Text>
               {item.originalPrice && item.originalPrice > item.price && (
-                <Text style={styles.originalPrice}>{formatPrice(item.originalPrice)}</Text>
-              )}
-              {item.originalPrice && item.originalPrice > item.price && (
-                <Text style={styles.discount}>
-                  {Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}% OFF
-                </Text>
+                <View style={styles.discountInfo}>
+                  <Text style={styles.originalPrice}>{formatPrice(item.originalPrice)}</Text>
+                  <Text style={styles.discount}>
+                    {Math.round(((item.originalPrice - item.price) / item.originalPrice) * 100)}% OFF
+                  </Text>
+                </View>
               )}
             </View>
 
-            <View style={styles.actionContainer}>
-              {item.sourceType === 'online' && item.link && (
+            {/* Rating Column */}
+            <View style={styles.ratingColumn}>
+              {item.rating ? (
+                <View style={styles.ratingContainer}>
+                  <View style={styles.starsContainer}>
+                    {renderStars(item.rating)}
+                  </View>
+                  <Text style={styles.ratingText}>{item.rating}</Text>
+                </View>
+              ) : (
+                <Text style={styles.noRating}>-</Text>
+              )}
+            </View>
+
+            {/* Action Column */}
+            <View style={styles.actionColumn}>
+              {item.sourceType === 'online' && item.link ? (
                 <TouchableOpacity
                   style={styles.actionButton}
                   onPress={() => openLink(item.link!)}
                 >
-                  <ExternalLink color="#2563eb" size={16} />
-                  <Text style={styles.actionText}>Buy Online</Text>
+                  <ExternalLink color="#2563eb" size={14} />
                 </TouchableOpacity>
-              )}
-              
-              {item.sourceType === 'local' && item.phone && (
+              ) : item.sourceType === 'local' && item.phone ? (
                 <TouchableOpacity
                   style={styles.actionButton}
                   onPress={() => callPhone(item.phone!)}
                 >
-                  <Phone color="#2563eb" size={16} />
-                  <Text style={styles.actionText}>Call Shop</Text>
+                  <Phone color="#2563eb" size={14} />
                 </TouchableOpacity>
+              ) : (
+                <Text style={styles.noAction}>-</Text>
               )}
             </View>
-
-            {item.address && (
-              <Text style={styles.address} numberOfLines={2}>{item.address}</Text>
-            )}
           </View>
         ))}
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -280,67 +228,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#0f172a',
   },
-  controlsContainer: {
-    marginBottom: 16,
-    gap: 12,
-  },
-  filterContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  filterButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#f8fafc',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  activeFilter: {
-    backgroundColor: '#2563eb',
-    borderColor: '#2563eb',
-  },
-  filterText: {
-    fontSize: 12,
-    color: '#64748b',
-    fontWeight: '500',
-  },
-  activeFilterText: {
-    color: '#fff',
-  },
-  sortContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  sortLabel: {
-    fontSize: 14,
-    color: '#64748b',
-    fontWeight: '500',
-  },
-  sortButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: '#f8fafc',
-  },
-  activeSort: {
-    backgroundColor: '#2563eb',
-  },
-  sortText: {
-    fontSize: 12,
-    color: '#64748b',
-  },
-  activeSortText: {
-    color: '#fff',
-  },
   statsContainer: {
     flexDirection: 'row',
     backgroundColor: '#f8fafc',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 20,
+    marginBottom: 16,
     justifyContent: 'space-around',
     borderWidth: 1,
     borderColor: '#e2e8f0',
@@ -354,179 +247,163 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: '#2563eb',
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#64748b',
-    marginTop: 4,
+    marginTop: 2,
   },
-  listContainer: {
-    gap: 12,
-  },
-  priceItem: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#f1f5f9',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    position: 'relative',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
   },
-  bestPrice: {
-    borderColor: '#10b981',
-    borderWidth: 2,
+  tableHeaderText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+    textAlign: 'center',
+    flex: 1,
+  },
+  tableContainer: {
+    flex: 1,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    backgroundColor: '#ffffff',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+    alignItems: 'center',
+    position: 'relative',
+    minHeight: 60,
+  },
+  bestPriceRow: {
     backgroundColor: '#f0fdf4',
+    borderBottomColor: '#bbf7d0',
   },
   bestPriceBadge: {
     position: 'absolute',
-    top: -8,
-    left: 16,
+    top: 4,
+    right: 4,
     backgroundColor: '#10b981',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  bestPriceText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  itemHeader: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
-  },
-  productImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    backgroundColor: '#f0f0f0',
-  },
-  itemInfo: {
-    flex: 1,
-  },
-  itemName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#0f172a',
-    marginBottom: 6,
-  },
-  sourceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  sourceName: {
-    fontSize: 12,
-    color: '#2563eb',
-    fontWeight: '500',
-  },
-  stockBadge: {
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
+    zIndex: 1,
   },
-  inStock: {
-    backgroundColor: '#f0fdf4',
-  },
-  limitedStock: {
-    backgroundColor: '#fef3c7',
-  },
-  stockText: {
-    fontSize: 10,
+  bestPriceText: {
+    color: '#fff',
+    fontSize: 8,
     fontWeight: '600',
-    color: '#10b981',
   },
-  ratingRow: {
+  storeColumn: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  storeInfo: {
+    flex: 1,
+  },
+  storeName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0f172a',
+    marginBottom: 2,
+  },
+  storeDetails: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 4,
+    gap: 6,
+    flexWrap: 'wrap',
   },
-  starsContainer: {
-    flexDirection: 'row',
-    gap: 1,
+  storeType: {
+    fontSize: 10,
+    color: '#64748b',
   },
-  ratingText: {
-    fontSize: 12,
-    color: '#0f172a',
+  distance: {
+    fontSize: 10,
+    color: '#2563eb',
     fontWeight: '500',
   },
-  reviewCount: {
-    fontSize: 11,
-    color: '#64748b',
+  delivery: {
+    fontSize: 10,
+    color: '#059669',
   },
-  locationInfo: {
-    flexDirection: 'row',
+  priceColumn: {
+    flex: 1,
     alignItems: 'center',
-    gap: 4,
-  },
-  distanceText: {
-    fontSize: 12,
-    color: '#64748b',
-  },
-  priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
+    paddingHorizontal: 4,
   },
   currentPrice: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '700',
     color: '#0f172a',
+    textAlign: 'center',
+  },
+  discountInfo: {
+    alignItems: 'center',
+    marginTop: 2,
   },
   originalPrice: {
-    fontSize: 14,
+    fontSize: 10,
     color: '#94a3b8',
     textDecorationLine: 'line-through',
   },
   discount: {
-    fontSize: 12,
+    fontSize: 9,
     color: '#10b981',
     fontWeight: '600',
     backgroundColor: '#f0fdf4',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 3,
+    marginTop: 1,
   },
-  actionContainer: {
-    marginBottom: 8,
+  ratingColumn: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  ratingContainer: {
+    alignItems: 'center',
+  },
+  starsContainer: {
+    flexDirection: 'row',
+    gap: 1,
+    marginBottom: 2,
+  },
+  ratingText: {
+    fontSize: 11,
+    color: '#0f172a',
+    fontWeight: '500',
+  },
+  noRating: {
+    fontSize: 12,
+    color: '#94a3b8',
+  },
+  actionColumn: {
+    flex: 1,
+    alignItems: 'center',
+    paddingLeft: 4,
   },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
     backgroundColor: '#f8fafc',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
+    padding: 8,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
-  actionText: {
+  noAction: {
     fontSize: 12,
-    color: '#2563eb',
-    fontWeight: '500',
-  },
-  address: {
-    fontSize: 12,
-    color: '#64748b',
-    fontStyle: 'italic',
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#0f172a',
-    marginBottom: 12,
+    color: '#94a3b8',
   },
 });
