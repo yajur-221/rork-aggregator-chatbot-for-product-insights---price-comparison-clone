@@ -252,16 +252,14 @@ const styles = StyleSheet.create({
   centerInputContainer: {
     flexDirection: 'row',
     width: '100%',
-    maxWidth: 500,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
     marginBottom: 20,
-    alignSelf: 'center',
     paddingHorizontal: 20,
   },
   glassSearchWrapper: {
-    width: '80%',
+    flex: 1,
     maxWidth: 400,
   },
   searchInputWrapper: {
