@@ -258,10 +258,11 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 20,
     alignSelf: 'center',
-    paddingHorizontal: 0,
+    paddingHorizontal: 20,
   },
   glassSearchWrapper: {
-    flex: 1,
+    width: '80%',
+    maxWidth: 400,
   },
   searchInputWrapper: {
     flexDirection: 'row',
