@@ -13,8 +13,7 @@ import { Send, History, Search, Sparkles } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { Video, ResizeMode } from 'expo-av';
-
-import LiquidGlass from 'liquid-glass-react';
+import { BlurView } from 'expo-blur';
 
 
 
@@ -69,16 +68,29 @@ export default function ChatScreen() {
           <Sparkles color="#2563eb" size={28} />
           <Text style={styles.logoText}>PriceWise</Text>
         </View>
-        <LiquidGlass style={styles.glassHistoryButton}>
-          <TouchableOpacity 
-            style={styles.historyButtonInner}
-            onPress={() => {
-              console.log('Search history:', searchHistory);
-            }}
-          >
-            <History color="#ffffff" size={20} />
-          </TouchableOpacity>
-        </LiquidGlass>
+        {Platform.OS !== 'web' ? (
+          <BlurView intensity={20} style={styles.glassHistoryButton}>
+            <TouchableOpacity 
+              style={styles.historyButtonInner}
+              onPress={() => {
+                console.log('Search history:', searchHistory);
+              }}
+            >
+              <History color="#ffffff" size={20} />
+            </TouchableOpacity>
+          </BlurView>
+        ) : (
+          <View style={styles.webGlassHistoryButton}>
+            <TouchableOpacity 
+              style={styles.historyButtonInner}
+              onPress={() => {
+                console.log('Search history:', searchHistory);
+              }}
+            >
+              <History color="#ffffff" size={20} />
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
       
       <View style={styles.welcomeContainer}>
@@ -88,32 +100,64 @@ export default function ChatScreen() {
           <Text style={styles.subtitle}>Compare prices across multiple platforms and get AI-powered insights</Text>
           
           <View style={styles.centerInputContainer}>
-            <LiquidGlass style={styles.glassSearchWrapper}>
-              <View style={styles.searchInputWrapper}>
-                <Search color="#9ca3af" size={20} style={styles.searchIcon} />
-                <TextInput
-                  testID="homeSearchInput"
-                  style={styles.centerTextInput}
-                  value={inputText}
-                  onChangeText={setInputText}
-                  placeholder="Search for any product..."
-                  placeholderTextColor="#9ca3af"
-                  multiline
-                  maxLength={500}
-                  onSubmitEditing={() => handleSend()}
-                />
+            {Platform.OS !== 'web' ? (
+              <BlurView intensity={25} style={styles.glassSearchWrapper}>
+                <View style={styles.searchInputWrapper}>
+                  <Search color="#9ca3af" size={20} style={styles.searchIcon} />
+                  <TextInput
+                    testID="homeSearchInput"
+                    style={styles.centerTextInput}
+                    value={inputText}
+                    onChangeText={setInputText}
+                    placeholder="Search for any product..."
+                    placeholderTextColor="#9ca3af"
+                    multiline
+                    maxLength={500}
+                    onSubmitEditing={() => handleSend()}
+                  />
+                </View>
+              </BlurView>
+            ) : (
+              <View style={styles.webGlassSearchWrapper}>
+                <View style={styles.searchInputWrapper}>
+                  <Search color="#9ca3af" size={20} style={styles.searchIcon} />
+                  <TextInput
+                    testID="homeSearchInput"
+                    style={styles.centerTextInput}
+                    value={inputText}
+                    onChangeText={setInputText}
+                    placeholder="Search for any product..."
+                    placeholderTextColor="#9ca3af"
+                    multiline
+                    maxLength={500}
+                    onSubmitEditing={() => handleSend()}
+                  />
+                </View>
               </View>
-            </LiquidGlass>
-            <LiquidGlass style={styles.glassSendButton}>
-              <TouchableOpacity
-                testID="homeSearchSend"
-                style={[styles.centerSendButton, !inputText.trim() && styles.centerSendButtonDisabled]}
-                onPress={() => handleSend()}
-                disabled={!inputText.trim()}
-              >
-                <Send color="#fff" size={18} />
-              </TouchableOpacity>
-            </LiquidGlass>
+            )}
+            {Platform.OS !== 'web' ? (
+              <BlurView intensity={20} style={styles.glassSendButton}>
+                <TouchableOpacity
+                  testID="homeSearchSend"
+                  style={[styles.centerSendButton, !inputText.trim() && styles.centerSendButtonDisabled]}
+                  onPress={() => handleSend()}
+                  disabled={!inputText.trim()}
+                >
+                  <Send color="#fff" size={18} />
+                </TouchableOpacity>
+              </BlurView>
+            ) : (
+              <View style={styles.webGlassSendButton}>
+                <TouchableOpacity
+                  testID="homeSearchSend"
+                  style={[styles.centerSendButton, !inputText.trim() && styles.centerSendButtonDisabled]}
+                  onPress={() => handleSend()}
+                  disabled={!inputText.trim()}
+                >
+                  <Send color="#fff" size={18} />
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
           
           {/* Search History */}
@@ -187,7 +231,11 @@ const styles = StyleSheet.create({
   glassHistoryButton: {
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  webGlassHistoryButton: {
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backdropFilter: 'blur(20px)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
@@ -244,18 +292,28 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 25,
     overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  webGlassSearchWrapper: {
+    flex: 1,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    backdropFilter: 'blur(25px)',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
   },
   searchInputWrapper: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backgroundColor: Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.8)',
     borderRadius: 25,
     paddingHorizontal: 20,
     paddingVertical: 16,
+    borderWidth: Platform.OS === 'web' ? 0 : 1,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
   },
   searchIcon: {
     marginRight: 12,
@@ -269,9 +327,16 @@ const styles = StyleSheet.create({
   glassSendButton: {
     borderRadius: 25,
     overflow: 'hidden',
-    backgroundColor: 'rgba(37, 99, 235, 0.3)',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  webGlassSendButton: {
+    borderRadius: 25,
+    backgroundColor: 'rgba(37, 99, 235, 0.4)',
+    backdropFilter: 'blur(20px)',
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    boxShadow: '0 8px 32px rgba(37, 99, 235, 0.3)',
   },
   centerSendButton: {
     backgroundColor: '#2563eb',
