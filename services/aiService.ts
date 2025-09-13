@@ -1,6 +1,6 @@
 import { smartScrapeProducts, generateSmartAIResponse } from './smartScraper';
 import type { ScrapingResult } from './smartScraper';
-import { getEnhancedPriceData } from './realPriceScraper';
+import { getEnhancedPriceData, handlePriceQuery } from './realPriceScraper';
 
 interface AIResponse {
   howToUse: string[];
@@ -79,7 +79,26 @@ function balanceJsonBrackets(s: string): string {
 export async function generateAIResponse(query: string): Promise<AIResponse> {
   console.log('🤖 Generating enhanced AI response for:', query);
   
-  // Try to get real price data first
+  // Check if this is a price query first
+  const isPriceQuery = /\b(price|cost|cheap|find|search|buy|purchase)\b/i.test(query);
+  
+  if (isPriceQuery) {
+    console.log('💰 Detected price query, using handle_price_query function');
+    try {
+      const priceResult = await handlePriceQuery(query);
+      if (priceResult.success && priceResult.data) {
+        console.log('✅ Price query successful, integrating with AI response');
+        
+        // Generate AI insights with price context
+        const aiResponse = await generateAIResponseWithPriceContext(query, priceResult.data);
+        return aiResponse;
+      }
+    } catch (error) {
+      console.log('⚠️ Price query failed, falling back to standard AI response:', error);
+    }
+  }
+  
+  // Try to get real price data for context
   let realPriceData: any = null;
   try {
     console.log('🌐 Attempting to get real price data for AI insights...');
@@ -361,57 +380,57 @@ export async function generateAIResponse(query: string): Promise<AIResponse> {
       'Limited customization options'
     ],
     youtubeLinks,
-    generalInsights: 'Solid choice with good balance of features, quality, and value. Consider your use case, budget, and compare with alternatives in the same price range.',
-    specifications: {
-      'Category': 'Consumer Product',
-      'Warranty': '1 Year Manufacturer Warranty',
-      'Availability': 'In Stock',
-      'Return Policy': '7-30 Days',
-      'Customer Rating': '4.2/5 Stars'
-    },
-    alternatives: [
-      {
-        name: 'Alternative Brand A',
-        price: '₹15,000 - ₹25,000',
-        reason: 'Better build quality and premium features'
-      },
-      {
-        name: 'Budget Option B',
-        price: '₹8,000 - ₹15,000',
-        reason: 'More affordable with essential features'
-      },
-      {
-        name: 'Premium Choice C',
-        price: '₹30,000 - ₹50,000',
-        reason: 'Advanced features and superior performance'
-      }
+    generalInsights: 'Solid choice with good balance of features, quality, and value. Consider your use case, budget, and compare with alternatives in the same price range.'
+  };
+}
+
+/**
+ * Generate AI response with price context from handle_price_query
+ */
+async function generateAIResponseWithPriceContext(query: string, priceData: any): Promise<AIResponse> {
+  console.log('🤖 Generating AI response with price context for:', query);
+  
+  const productName = priceData.product_searched;
+  const cheapestPrice = priceData.cheapest;
+  const allPrices = priceData.all_prices;
+  
+  // Generate contextual insights based on price data
+  const priceRange = `₹${Math.min(...allPrices.map((p: any) => p.price)).toLocaleString()} - ₹${Math.max(...allPrices.map((p: any) => p.price)).toLocaleString()}`;
+  const avgPrice = Math.round(allPrices.reduce((sum: number, p: any) => sum + p.price, 0) / allPrices.length);
+  const platforms = [...new Set(allPrices.map((p: any) => p.platform))];
+  
+  const youtubeLinks = await generateYouTubeLinks(query);
+  
+  return {
+    howToUse: [
+      'Research and compare prices across platforms',
+      'Check seller ratings and reviews',
+      'Look for deals and discounts',
+      'Verify product authenticity',
+      'Consider delivery time and costs'
     ],
-    faqs: [
-      {
-        question: 'What is included in the box?',
-        answer: 'The package typically includes the main product, essential accessories, user manual, warranty card, and any required cables or adapters.'
-      },
-      {
-        question: 'How long is the warranty period?',
-        answer: 'Most products come with a standard 1-year manufacturer warranty. Extended warranty options may be available for purchase.'
-      },
-      {
-        question: 'Is installation or setup required?',
-        answer: 'Setup requirements vary by product. Most items include detailed instructions, and some may require professional installation.'
-      },
-      {
-        question: 'What is the return policy?',
-        answer: 'Return policies typically range from 7-30 days depending on the retailer. Items must be in original condition with all accessories.'
-      },
-      {
-        question: 'Are there any ongoing costs?',
-        answer: 'Consider potential costs for accessories, maintenance, software subscriptions, or extended warranties when budgeting for your purchase.'
-      }
+    tips: [
+      `Best price found: ₹${cheapestPrice.price.toLocaleString()} on ${cheapestPrice.platform}`,
+      `Price range: ${priceRange} across ${platforms.length} platforms`,
+      `Average price: ₹${avgPrice.toLocaleString()}`,
+      'Check for seasonal sales and festive offers',
+      'Compare warranty and return policies'
     ],
-    userRating: 4.2,
-    reviewSummary: 'Good value for money with reliable performance. Users praise ease of use and build quality.',
-    warranty: '1 Year Manufacturer Warranty with authorized service centers',
-    availability: 'In Stock - Available for immediate delivery'
+    pros: [
+      'Multiple platform availability',
+      'Competitive pricing options',
+      'Wide price range to choose from',
+      'Real-time price comparison available',
+      'Verified seller options'
+    ],
+    cons: [
+      'Price variations across platforms',
+      'Delivery charges may apply',
+      'Stock availability varies',
+      'Return policies differ by seller'
+    ],
+    youtubeLinks,
+    generalInsights: `Found ${allPrices.length} options for ${productName} with prices ranging from ${priceRange}. The cheapest option is available on ${cheapestPrice.platform} for ₹${cheapestPrice.price.toLocaleString()}. Consider factors like delivery time, seller reputation, and return policy when making your decision.`
   };
 }
 

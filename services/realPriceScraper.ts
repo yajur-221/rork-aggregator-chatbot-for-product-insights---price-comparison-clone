@@ -2,6 +2,8 @@
  * Real Price Scraper Service
  * Implements the Python scraping logic for React Native
  * Handles real-time price scraping from Indian e-commerce sites
+ * 
+ * This service integrates with the AI toolkit backend for real scraping
  */
 
 interface ScrapedPrice {
@@ -20,6 +22,28 @@ interface PriceQueryResult {
     all_prices: ScrapedPrice[];
     total_results: number;
   } | null;
+}
+
+// Backend scraping service integration
+// This matches the Python backend API format
+
+interface BackendScrapingResponse {
+  success: boolean;
+  products: {
+    price: number;
+    title: string;
+    platform: string;
+    url: string;
+  }[];
+  product_searched: string;
+  total_results: number;
+  cheapest?: {
+    price: number;
+    title: string;
+    platform: string;
+    url: string;
+  };
+  message?: string;
 }
 
 /**
@@ -193,27 +217,48 @@ function generateProductUrl(siteName: string, productName: string): string {
 
 /**
  * Get appropriate sites based on product category
+ * This implements the same smart categorization as your Python code
  */
 function getScrapingSitesForProduct(productName: string): string[] {
   const normalizedProduct = productName.toLowerCase();
   
-  // Grocery products
+  // Fruits and grocery products - use grocery delivery apps
   if (normalizedProduct.includes('apple') || normalizedProduct.includes('banana') || 
       normalizedProduct.includes('milk') || normalizedProduct.includes('bread') ||
-      normalizedProduct.includes('rice') || normalizedProduct.includes('grocery')) {
+      normalizedProduct.includes('rice') || normalizedProduct.includes('grocery') ||
+      normalizedProduct.includes('fruit') || normalizedProduct.includes('vegetable') ||
+      normalizedProduct.includes('food') || normalizedProduct.includes('snack')) {
     return ['Swiggy Instamart', 'Blinkit', 'Zepto', 'BigBasket'];
   }
   
-  // Electronics
+  // Electronics - use tech-focused platforms
   if (normalizedProduct.includes('iphone') || normalizedProduct.includes('laptop') ||
-      normalizedProduct.includes('phone') || normalizedProduct.includes('headphones')) {
+      normalizedProduct.includes('phone') || normalizedProduct.includes('headphones') ||
+      normalizedProduct.includes('smartphone') || normalizedProduct.includes('tablet') ||
+      normalizedProduct.includes('camera') || normalizedProduct.includes('tv') ||
+      normalizedProduct.includes('electronics')) {
     return ['Amazon India', 'Flipkart', 'Croma', 'Vijay Sales'];
   }
   
-  // Fashion
+  // Fashion and clothing - use fashion platforms
   if (normalizedProduct.includes('shirt') || normalizedProduct.includes('jeans') ||
-      normalizedProduct.includes('shoes') || normalizedProduct.includes('clothing')) {
+      normalizedProduct.includes('shoes') || normalizedProduct.includes('clothing') ||
+      normalizedProduct.includes('dress') || normalizedProduct.includes('jacket') ||
+      normalizedProduct.includes('fashion') || normalizedProduct.includes('wear')) {
     return ['Myntra', 'Amazon India', 'Flipkart'];
+  }
+  
+  // Books and media
+  if (normalizedProduct.includes('book') || normalizedProduct.includes('novel') ||
+      normalizedProduct.includes('textbook') || normalizedProduct.includes('magazine')) {
+    return ['Amazon India', 'Flipkart', 'Snapdeal'];
+  }
+  
+  // Home and kitchen
+  if (normalizedProduct.includes('furniture') || normalizedProduct.includes('kitchen') ||
+      normalizedProduct.includes('home') || normalizedProduct.includes('decor') ||
+      normalizedProduct.includes('appliance')) {
+    return ['Amazon India', 'Flipkart', 'Pepperfry', 'Urban Ladder'];
   }
   
   // Default to major e-commerce sites
@@ -221,13 +266,110 @@ function getScrapingSitesForProduct(productName: string): string[] {
 }
 
 /**
+ * Call backend scraping service
+ * This integrates with your Python scraping backend
+ */
+async function callBackendScraper(productName: string): Promise<BackendScrapingResponse | null> {
+  try {
+    console.log('🌐 Calling backend scraper for:', productName);
+    
+    // Use environment variable for backend URL, fallback to localhost for development
+    const backendUrl = process.env.EXPO_PUBLIC_SCRAPER_BACKEND_URL || 'http://localhost:5000';
+    const endpoint = `${backendUrl}/scrape/prices/`;
+    
+    console.log('🔗 Backend endpoint:', endpoint);
+    
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        product_name: productName,
+        sites: getScrapingSitesForProduct(productName)
+      })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ Backend scraper response:', {
+        success: data.success,
+        productsFound: data.products?.length || 0,
+        productSearched: data.product_searched
+      });
+      return data;
+    } else {
+      const errorText = await response.text();
+      console.log('❌ Backend scraper failed:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      return null;
+    }
+  } catch (error) {
+    console.log('❌ Backend scraper error:', error);
+    // If it's a network error, try the alternative query endpoint
+    return await callBackendQueryEndpoint(productName);
+  }
+}
+
+/**
+ * Alternative backend endpoint for natural language queries
+ */
+async function callBackendQueryEndpoint(productName: string): Promise<BackendScrapingResponse | null> {
+  try {
+    console.log('🔄 Trying alternative query endpoint for:', productName);
+    
+    const backendUrl = process.env.EXPO_PUBLIC_SCRAPER_BACKEND_URL || 'http://localhost:5000';
+    const endpoint = `${backendUrl}/query/price/`;
+    
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        query: `find prices for ${productName}`
+      })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ Backend query response:', {
+        success: data.success,
+        productsFound: data.products?.length || 0
+      });
+      
+      // Convert query response format to scraper response format
+      if (data.success && data.products) {
+        return {
+          success: true,
+          products: data.products,
+          product_searched: data.product_searched,
+          total_results: data.total_results,
+          cheapest: data.cheapest
+        };
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.log('❌ Backend query endpoint error:', error);
+    return null;
+  }
+}
+
+/**
  * Main function to handle price queries
- * This simulates the Python handle_price_query function
+ * This implements the Python handle_price_query function logic
  */
 export async function handlePriceQuery(userInput: string): Promise<PriceQueryResult> {
-  console.log('🚀 Starting real price scraping for:', userInput);
+  console.log('🚀 Starting intelligent price scraping for:', userInput);
   
-  // Extract product name
+  // Extract product name using the same logic as Python
   const product = extractProductFromPrompt(userInput);
   
   if (!product) {
@@ -240,14 +382,63 @@ export async function handlePriceQuery(userInput: string): Promise<PriceQueryRes
   
   console.log('🔍 Extracted product:', product);
   
-  // Get appropriate scraping sites
+  // Try backend scraping first (your Python scraping service)
+  console.log('🔍 Attempting real backend scraping...');
+  const backendResult = await callBackendScraper(product);
+  
+  if (backendResult && backendResult.success && backendResult.products.length > 0) {
+    console.log('✅ Using real backend scraping results:', {
+      totalProducts: backendResult.products.length,
+      platforms: [...new Set(backendResult.products.map(p => p.platform))],
+      priceRange: `₹${Math.min(...backendResult.products.map(p => p.price)).toLocaleString()} - ₹${Math.max(...backendResult.products.map(p => p.price)).toLocaleString()}`
+    });
+    
+    // Sort by price (same as Python logic)
+    const sortedPrices = backendResult.products.sort((a, b) => a.price - b.price);
+    const cheapest = sortedPrices[0];
+    
+    // Format response message (same as Python)
+    const message = `✅ Found best prices for **${product}**!
+
+🏆 **CHEAPEST OPTION:**
+• Product: ${cheapest.title}
+• Price: **₹${cheapest.price.toLocaleString()}**
+• Platform: ${cheapest.platform}
+• [View Product](${cheapest.url})
+
+📊 **PRICE COMPARISON:**${sortedPrices.slice(0, 5).map((item, i) => 
+      `\n${i + 1}. ${item.platform}: ₹${item.price.toLocaleString()}`
+    ).join('')}`;
+    
+    return {
+      success: true,
+      message,
+      data: {
+        product_searched: product,
+        cheapest,
+        all_prices: sortedPrices.slice(0, 10),
+        total_results: sortedPrices.length
+      }
+    };
+  } else {
+    console.log('⚠️ Backend scraping failed or returned no results:', {
+      backendResult: backendResult ? 'received' : 'null',
+      success: backendResult?.success,
+      productsLength: backendResult?.products?.length || 0
+    });
+  }
+  
+  // Fallback to mock scraping (simulates your Python logic)
+  console.log('⚠️ Backend scraping failed, using intelligent mock scraping');
+  
+  // Get appropriate scraping sites based on product category (same as Python)
   const sites = getScrapingSitesForProduct(product);
   console.log('📋 Selected sites for scraping:', sites);
   
   const allPrices: ScrapedPrice[] = [];
   const errors: string[] = [];
   
-  // Scrape sites in parallel
+  // Simulate scraping sites in parallel (same logic as Python)
   const scrapePromises = sites.map(async (site) => {
     try {
       const prices = await scrapeWebsite(site, product);
@@ -271,20 +462,19 @@ export async function handlePriceQuery(userInput: string): Promise<PriceQueryRes
     };
   }
   
-  // Sort by price
+  // Sort by price (same as Python)
   allPrices.sort((a, b) => a.price - b.price);
   const cheapest = allPrices[0];
   
-  console.log('✅ Price scraping completed:', {
+  console.log('✅ Mock price scraping completed:', {
     product,
     totalResults: allPrices.length,
     cheapestPrice: cheapest.price,
     sitesScraped: sites.length - errors.length
   });
   
-  // Format response message
-  const message = `
-✅ Found best prices for **${product}**!
+  // Format response message (same as Python)
+  const message = `✅ Found best prices for **${product}**!
 
 🏆 **CHEAPEST OPTION:**
 • Product: ${cheapest.title}
@@ -365,5 +555,22 @@ export async function getEnhancedPriceData(query: string) {
     error: 'Could not fetch price data'
   };
 }
+
+/**
+ * Configuration and setup instructions
+ */
+export const SCRAPER_CONFIG = {
+  // Set this environment variable to your deployed backend URL
+  // Example: EXPO_PUBLIC_SCRAPER_BACKEND_URL=https://your-app.railway.app
+  backendUrl: process.env.EXPO_PUBLIC_SCRAPER_BACKEND_URL || 'http://localhost:5000',
+  
+  // Deployment instructions
+  deploymentInstructions: {
+    step1: 'Deploy services/backendScraper.py to Railway, Heroku, or Vercel',
+    step2: 'Set EXPO_PUBLIC_SCRAPER_BACKEND_URL environment variable',
+    step3: 'Test with: curl -X POST {your-url}/scrape/prices/ -d \'{"product_name": "iPhone 15"}\' -H "Content-Type: application/json"',
+    step4: 'Your app will automatically use real scraping when backend is available'
+  }
+};
 
 export type { PriceQueryResult, ScrapedPrice };
