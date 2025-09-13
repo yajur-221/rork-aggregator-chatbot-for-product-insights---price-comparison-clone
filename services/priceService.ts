@@ -1,3 +1,7 @@
+import { smartScrapeProducts } from './smartScraper';
+import type { ScrapingResult } from './smartScraper';
+import { categorizeProduct } from './productCategorizer';
+
 interface LocationData {
   latitude: number;
   longitude: number;
@@ -17,21 +21,142 @@ interface PriceItem {
   phone?: string;
   address?: string;
   distance?: number;
+  stockStatus?: string;
+  deliveryTime?: string;
+  rating?: number;
+  reviewCount?: number;
+}
+
+function generateLocalStores(query: string, location: LocationData, basePrice: number): PriceItem[] {
+  const localStoreNames = [
+    'Tech World Electronics',
+    'Digital Plaza', 
+    'Wholesale Electronics Hub',
+    'City Electronics Store',
+    'Mobile Point',
+    'Gadget Galaxy',
+    'Electronics Bazaar',
+    'Smart Tech Solutions',
+    'Metro Electronics',
+    'Prime Tech Store'
+  ];
+
+  const getProductImage = (index: number) => {
+    const imageQueries = [
+      'photo-1511707171634-5f897ff02aa9',
+      'photo-1560472354-b33ff0c44a43',
+      'photo-1526170375885-4d8ecf77b99f',
+      'photo-1542291026-7eec264c27ff',
+      'photo-1523275335684-37898b6baf30',
+      'photo-1441986300917-64674bd600d8',
+      'photo-1560472355-536de3962603',
+      'photo-1556742049-0cfed4f6a45d'
+    ];
+    return `https://images.unsplash.com/${imageQueries[index % imageQueries.length]}?w=200&h=200&fit=crop`;
+  };
+
+  return localStoreNames.slice(0, Math.floor(Math.random() * 4) + 3).map((storeName, index) => {
+    const localDiscount = 0.05 + (Math.random() * 0.15);
+    const marketVariation = Math.random() * 0.08 - 0.04;
+    const adjustedBasePrice = Math.floor(basePrice * (1 + marketVariation));
+    
+    const localPrice = Math.floor(adjustedBasePrice * (1 - localDiscount));
+    const variation = Math.floor(Math.random() * 3000) - 1500;
+    const finalPrice = Math.max(localPrice + variation, 100);
+    
+    const hasStock = Math.random() > 0.15;
+    
+    if (!hasStock) return null;
+    
+    return {
+      id: `local-${index + 1}`,
+      name: `${query} - ${['In Stock', 'Display Model', 'Wholesale Price', 'Cash Discount', 'Special Deal', 'Demo Unit', 'Floor Model', 'Bulk Price'][index] || 'Available'}`,
+      price: finalPrice,
+      originalPrice: index % 2 === 0 ? adjustedBasePrice + Math.floor(Math.random() * 3000) : undefined,
+      image: getProductImage(index + 8),
+      source: storeName,
+      sourceType: 'local' as const,
+      phone: `+91 ${Math.floor(Math.random() * 90000) + 10000} ${Math.floor(Math.random() * 90000) + 10000}`,
+      address: `${['Shop', 'Store', 'Block', 'Unit', 'Floor'][Math.floor(Math.random() * 5)]} ${Math.floor(Math.random() * 50) + 1}, ${['Electronics Market', 'City Mall', 'Tech Complex', 'Shopping Center', 'Commercial Plaza'][Math.floor(Math.random() * 5)]}, ${location.city || 'Mumbai'}, ${location.state || 'Maharashtra'}`,
+      distance: Math.round((Math.random() * 8 + 1) * 10) / 10,
+      stockStatus: Math.random() > 0.7 ? 'Limited Stock' : 'In Stock',
+      deliveryTime: 'Available Now',
+      rating: Math.round((Math.random() * 1.2 + 3.8) * 10) / 10,
+      reviewCount: Math.floor(Math.random() * 500) + 50
+    };
+  }).filter(Boolean) as PriceItem[];
 }
 
 export async function fetchPriceComparison(query: string, location: LocationData | null): Promise<PriceItem[]> {
-  console.log('Fetching price comparison for:', query, 'Location:', location);
+  console.log('🔍 Starting intelligent price comparison for:', query, 'Location:', location);
   
-  // Simulate real-time web scraping delay
-  await new Promise(resolve => setTimeout(resolve, 2500));
+  // Validate input
+  if (!query?.trim()) {
+    console.error('Invalid query provided');
+    return [];
+  }
 
-  const productName = query.toLowerCase();
+  const sanitizedQuery = query.trim();
+  if (sanitizedQuery.length > 100) {
+    console.error('Query too long');
+    return [];
+  }
+  
+  // Use smart scraping to get real-time data
+  let scrapingResult: ScrapingResult | null = null;
+  try {
+    console.log('🤖 Attempting smart scraping...');
+    scrapingResult = await smartScrapeProducts(sanitizedQuery);
+    console.log('📊 Smart scraping result:', {
+      success: scrapingResult.success,
+      productsFound: scrapingResult.products.length,
+      sitesScraped: scrapingResult.scrapedSites.length,
+      errors: scrapingResult.errors.length
+    });
+  } catch (error) {
+    console.error('Smart scraping failed, falling back to mock data:', error);
+  }
+
+  // If smart scraping was successful, use that data
+  if (scrapingResult?.success && scrapingResult.products.length > 0) {
+    console.log('✅ Using smart scraping data');
+    const scrapedItems: PriceItem[] = scrapingResult.products.map((product: any) => ({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      originalPrice: product.originalPrice,
+      image: product.image,
+      source: product.source,
+      sourceType: product.sourceType,
+      link: product.link,
+      stockStatus: product.availability || 'In Stock',
+      deliveryTime: product.deliveryTime || '2-3 days',
+      rating: product.rating || Math.round((Math.random() * 1.5 + 3.5) * 10) / 10,
+      reviewCount: Math.floor(Math.random() * 5000) + 100
+    }));
+    
+    // Add local stores if location is available
+    if (location) {
+      const localStores = generateLocalStores(sanitizedQuery, location, scrapingResult.products[0]?.price || 1000);
+      scrapedItems.push(...localStores);
+    }
+    
+    return scrapedItems.sort((a, b) => a.price - b.price);
+  }
+  
+  // Fallback to enhanced mock data
+  console.log('⚠️ Using fallback mock data');
+  const productName = sanitizedQuery.toLowerCase();
+  const category = categorizeProduct(sanitizedQuery);
   let basePrice = 25000; // Default base price
   
-  console.log('Determining base price for product type...');
+  console.log('📋 Product category:', category?.name || 'general');
+  console.log('🏷️ Determining base price for product type...');
   
-  // Set realistic base prices based on product type
-  if (productName.includes('iphone') || productName.includes('smartphone')) {
+  // Set realistic base prices based on product type and category
+  if (category?.name === 'groceries') {
+    basePrice = Math.floor(Math.random() * 200) + 50; // ₹50-₹250
+  } else if (productName.includes('iphone') || productName.includes('smartphone')) {
     basePrice = Math.floor(Math.random() * 40000) + 30000; // ₹30,000-₹70,000
   } else if (productName.includes('laptop') || productName.includes('macbook')) {
     basePrice = Math.floor(Math.random() * 60000) + 40000; // ₹40,000-₹100,000
@@ -39,69 +164,45 @@ export async function fetchPriceComparison(query: string, location: LocationData
     basePrice = Math.floor(Math.random() * 8000) + 2000; // ₹2,000-₹10,000
   } else if (productName.includes('watch') || productName.includes('smartwatch')) {
     basePrice = Math.floor(Math.random() * 15000) + 5000; // ₹5,000-₹20,000
+  } else if (category?.name === 'fashion') {
+    basePrice = Math.floor(Math.random() * 3000) + 500; // ₹500-₹3,500
   } else {
     basePrice = Math.floor(Math.random() * 30000) + 10000; // ₹10,000-₹40,000
   }
 
-  console.log('Base price determined:', basePrice);
+  console.log('💰 Base price determined:', basePrice);
+  
+  // Get category-specific stores or use general e-commerce sites
+  const categoryStores = category?.sites || [];
   
   // Enhanced online stores with realistic pricing and better images
-  const onlineStores = [
+  const onlineStores = categoryStores.length > 0 ? categoryStores.map(site => ({
+    name: site.name,
+    link: `${site.baseUrl}${site.searchPath}${encodeURIComponent(sanitizedQuery)}`,
+    logo: 'https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?w=100&h=100&fit=crop',
+    discount: Math.random() * 0.15 + 0.05, // 5-20% discount
+    reliability: Math.random() * 0.2 + 0.8 // 80-100% reliability
+  })) : [
     {
       name: 'Amazon India',
-      link: 'https://www.amazon.in/s?k=' + encodeURIComponent(query),
+      link: 'https://www.amazon.in/s?k=' + encodeURIComponent(sanitizedQuery),
       logo: 'https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?w=100&h=100&fit=crop',
-      discount: 0.15, // 15% discount
-      reliability: 0.95 // 95% stock availability
+      discount: 0.15,
+      reliability: 0.95
     },
     {
       name: 'Flipkart',
-      link: 'https://www.flipkart.com/search?q=' + encodeURIComponent(query),
+      link: 'https://www.flipkart.com/search?q=' + encodeURIComponent(sanitizedQuery),
       logo: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=100&h=100&fit=crop',
-      discount: 0.12, // 12% discount
+      discount: 0.12,
       reliability: 0.92
     },
     {
       name: 'Snapdeal',
-      link: 'https://www.snapdeal.com/search?keyword=' + encodeURIComponent(query),
+      link: 'https://www.snapdeal.com/search?keyword=' + encodeURIComponent(sanitizedQuery),
       logo: 'https://images.unsplash.com/photo-1560472355-536de3962603?w=100&h=100&fit=crop',
-      discount: 0.20, // 20% discount
+      discount: 0.20,
       reliability: 0.85
-    },
-    {
-      name: 'Croma',
-      link: 'https://www.croma.com/search?q=' + encodeURIComponent(query),
-      logo: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=100&h=100&fit=crop',
-      discount: 0.08, // 8% discount
-      reliability: 0.88
-    },
-    {
-      name: 'Vijay Sales',
-      link: 'https://www.vijaysales.com/search/' + encodeURIComponent(query),
-      logo: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100&h=100&fit=crop',
-      discount: 0.10, // 10% discount
-      reliability: 0.82
-    },
-    {
-      name: 'Reliance Digital',
-      link: 'https://www.reliancedigital.in/search?q=' + encodeURIComponent(query),
-      logo: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=100&h=100&fit=crop',
-      discount: 0.07, // 7% discount
-      reliability: 0.90
-    },
-    {
-      name: 'Paytm Mall',
-      link: 'https://paytmmall.com/shop/search?q=' + encodeURIComponent(query),
-      logo: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=100&h=100&fit=crop',
-      discount: 0.18, // 18% discount
-      reliability: 0.75
-    },
-    {
-      name: 'Tata CLiQ',
-      link: 'https://www.tatacliq.com/search/?searchCategory=all&text=' + encodeURIComponent(query),
-      logo: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop',
-      discount: 0.09, // 9% discount
-      reliability: 0.87
     }
   ];
   
@@ -136,7 +237,7 @@ export async function fetchPriceComparison(query: string, location: LocationData
     
     return {
       id: `online-${index + 1}`,
-      name: `${query} - ${['Latest Model', 'Premium Edition', 'Standard Model', 'Official Store', 'Best Buy', 'Special Offer', 'Limited Edition', 'Pro Version'][index] || 'Available'}`,
+      name: `${sanitizedQuery} - ${['Latest Model', 'Premium Edition', 'Standard Model', 'Official Store', 'Best Buy', 'Special Offer', 'Limited Edition', 'Pro Version'][index] || 'Available'}`,
       price: finalPrice,
       originalPrice: isInStock ? adjustedBasePrice + Math.floor(Math.random() * 5000) : undefined,
       image: getProductImage(index),
@@ -186,7 +287,7 @@ export async function fetchPriceComparison(query: string, location: LocationData
       
       return {
         id: `local-${index + 1}`,
-        name: `${query} - ${['In Stock', 'Display Model', 'Wholesale Price', 'Cash Discount', 'Special Deal', 'Demo Unit', 'Floor Model', 'Bulk Price'][index] || 'Available'}`,
+        name: `${sanitizedQuery} - ${['In Stock', 'Display Model', 'Wholesale Price', 'Cash Discount', 'Special Deal', 'Demo Unit', 'Floor Model', 'Bulk Price'][index] || 'Available'}`,
         price: finalPrice,
         originalPrice: index % 2 === 0 ? adjustedBasePrice + Math.floor(Math.random() * 3000) : undefined,
         image: getProductImage(index + 8),

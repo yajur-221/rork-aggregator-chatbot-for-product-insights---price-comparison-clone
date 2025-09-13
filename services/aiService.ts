@@ -1,3 +1,6 @@
+import { smartScrapeProducts, generateSmartAIResponse } from './smartScraper';
+import type { ScrapingResult } from './smartScraper';
+
 interface AIResponse {
   howToUse: string[];
   tips: string[];
@@ -73,10 +76,41 @@ function balanceJsonBrackets(s: string): string {
 }
 
 export async function generateAIResponse(query: string): Promise<AIResponse> {
-  console.log('Generating AI response for:', query);
+  console.log('🤖 Generating enhanced AI response for:', query);
   
+  // Try to get smart scraping data first
+  let scrapingData: ScrapingResult | null = null;
   try {
-    console.log('Attempting to call real AI API...');
+    console.log('🔍 Attempting to get scraping data for AI insights...');
+    scrapingData = await smartScrapeProducts(query);
+    if (scrapingData.success) {
+      console.log('✅ Got scraping data for AI analysis:', {
+        products: scrapingData.products.length,
+        sites: scrapingData.scrapedSites.length
+      });
+    }
+  } catch (error) {
+    console.log('⚠️ Could not get scraping data for AI, proceeding with standard analysis:', error);
+  }
+  
+  // Try smart AI response with scraping context
+  try {
+    const smartResponse = await generateSmartAIResponse(query, scrapingData || undefined);
+    if (smartResponse) {
+      console.log('✅ Smart AI response generated successfully');
+      const youtubeLinks = await generateYouTubeLinks(query);
+      return {
+        ...smartResponse,
+        youtubeLinks
+      } as AIResponse;
+    }
+  } catch (error) {
+    console.log('⚠️ Smart AI response failed, falling back to standard response:', error);
+  }
+  
+  // Fallback to standard AI API
+  try {
+    console.log('📡 Attempting to call standard AI API...');
     const response = await fetch('https://toolkit.rork.com/text/llm/', {
       method: 'POST',
       headers: {
