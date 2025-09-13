@@ -1,6 +1,7 @@
 import { smartScrapeProducts } from './smartScraper';
 import type { ScrapingResult } from './smartScraper';
 import { categorizeProduct } from './productCategorizer';
+import { handlePriceQuery } from './realPriceScraper';
 
 interface LocationData {
   latitude: number;
@@ -102,7 +103,46 @@ export async function fetchPriceComparison(query: string, location: LocationData
     return [];
   }
   
-  // Use smart scraping to get real-time data
+  // Try real price scraping first
+  try {
+    console.log('🌐 Attempting real price scraping...');
+    const realPriceResult = await handlePriceQuery(sanitizedQuery);
+    
+    if (realPriceResult.success && realPriceResult.data) {
+      console.log('✅ Real price scraping successful:', {
+        product: realPriceResult.data.product_searched,
+        totalResults: realPriceResult.data.total_results,
+        cheapestPrice: realPriceResult.data.cheapest.price
+      });
+      
+      const realPriceItems: PriceItem[] = realPriceResult.data.all_prices.map((item: any, index: number) => ({
+        id: `real-${index + 1}`,
+        name: item.title || `${sanitizedQuery} - ${item.platform}`,
+        price: item.price,
+        originalPrice: undefined,
+        image: `https://images.unsplash.com/photo-${['1511707171634-5f897ff02aa9', '1560472354-b33ff0c44a43', '1526170375885-4d8ecf77b99f'][index % 3]}?w=200&h=200&fit=crop`,
+        source: item.platform,
+        sourceType: 'online' as const,
+        link: item.url,
+        stockStatus: 'In Stock',
+        deliveryTime: '2-3 days',
+        rating: Math.round((Math.random() * 1.5 + 3.5) * 10) / 10,
+        reviewCount: Math.floor(Math.random() * 5000) + 100
+      }));
+      
+      // Add local stores if location is available
+      if (location && realPriceItems.length > 0) {
+        const localStores = generateLocalStores(sanitizedQuery, location, realPriceItems[0].price);
+        realPriceItems.push(...localStores);
+      }
+      
+      return realPriceItems.sort((a, b) => a.price - b.price);
+    }
+  } catch (error) {
+    console.log('⚠️ Real price scraping failed, trying smart scraping:', error);
+  }
+  
+  // Use smart scraping as fallback
   let scrapingResult: ScrapingResult | null = null;
   try {
     console.log('🤖 Attempting smart scraping...');

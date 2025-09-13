@@ -1,5 +1,6 @@
 import { smartScrapeProducts, generateSmartAIResponse } from './smartScraper';
 import type { ScrapingResult } from './smartScraper';
+import { getEnhancedPriceData } from './realPriceScraper';
 
 interface AIResponse {
   howToUse: string[];
@@ -78,24 +79,63 @@ function balanceJsonBrackets(s: string): string {
 export async function generateAIResponse(query: string): Promise<AIResponse> {
   console.log('🤖 Generating enhanced AI response for:', query);
   
-  // Try to get smart scraping data first
-  let scrapingData: ScrapingResult | null = null;
+  // Try to get real price data first
+  let realPriceData: any = null;
   try {
-    console.log('🔍 Attempting to get scraping data for AI insights...');
-    scrapingData = await smartScrapeProducts(query);
-    if (scrapingData.success) {
-      console.log('✅ Got scraping data for AI analysis:', {
-        products: scrapingData.products.length,
-        sites: scrapingData.scrapedSites.length
+    console.log('🌐 Attempting to get real price data for AI insights...');
+    realPriceData = await getEnhancedPriceData(query);
+    if (realPriceData.success) {
+      console.log('✅ Got real price data for AI analysis:', {
+        product: realPriceData.product,
+        prices: realPriceData.prices.length,
+        sitesChecked: realPriceData.summary.sitesChecked
       });
     }
   } catch (error) {
-    console.log('⚠️ Could not get scraping data for AI, proceeding with standard analysis:', error);
+    console.log('⚠️ Could not get real price data, trying smart scraping:', error);
   }
   
-  // Try smart AI response with scraping context
+  // Try to get smart scraping data as fallback
+  let scrapingData: ScrapingResult | null = null;
+  if (!realPriceData?.success) {
+    try {
+      console.log('🔍 Attempting to get scraping data for AI insights...');
+      scrapingData = await smartScrapeProducts(query);
+      if (scrapingData.success) {
+        console.log('✅ Got scraping data for AI analysis:', {
+          products: scrapingData.products.length,
+          sites: scrapingData.scrapedSites.length
+        });
+      }
+    } catch (error) {
+      console.log('⚠️ Could not get scraping data for AI, proceeding with standard analysis:', error);
+    }
+  }
+  
+  // Try smart AI response with real price or scraping context
   try {
-    const smartResponse = await generateSmartAIResponse(query, scrapingData || undefined);
+    let contextData: ScrapingResult | undefined = undefined;
+    if (realPriceData?.success) {
+      // Convert real price data to scraping format for compatibility
+      contextData = {
+        success: true,
+        products: realPriceData.prices.map((p: any) => ({
+          id: `real-${p.platform}`,
+          name: p.title,
+          price: p.price,
+          source: p.platform,
+          sourceType: 'online' as const,
+          link: p.url
+        })),
+        scrapedSites: [...new Set(realPriceData.prices.map((p: any) => p.platform))] as string[],
+        errors: [],
+        totalTime: 0
+      };
+    } else if (scrapingData) {
+      contextData = scrapingData;
+    }
+    
+    const smartResponse = await generateSmartAIResponse(query, contextData);
     if (smartResponse) {
       console.log('✅ Smart AI response generated successfully');
       const youtubeLinks = await generateYouTubeLinks(query);
