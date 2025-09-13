@@ -102,11 +102,11 @@ export function extractProductFromPrompt(userInput: string): string | null {
 async function scrapeWebsite(siteName: string, productName: string): Promise<ScrapedPrice[]> {
   console.log(`🔍 Scraping ${siteName} for "${productName}"...`);
   
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
+  // Simulate network delay (reduced for better UX)
+  await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000));
   
-  // Simulate occasional failures (10% chance)
-  if (Math.random() < 0.1) {
+  // Simulate occasional failures (reduced to 3% chance)
+  if (Math.random() < 0.03) {
     throw new Error(`Failed to scrape ${siteName}: Network timeout`);
   }
   
@@ -191,6 +191,33 @@ function generateProductVariant(index: number): string {
   ];
   
   return variants[index % variants.length];
+}
+
+/**
+ * Generate fallback prices when a site fails
+ */
+async function generateFallbackPrices(siteName: string, productName: string): Promise<ScrapedPrice[]> {
+  console.log(`🔄 Generating fallback prices for ${siteName}...`);
+  
+  const basePrice = generateBasePrice(productName);
+  const siteMultiplier = getSiteMultiplier(siteName);
+  const productCount = Math.floor(Math.random() * 3) + 1; // 1-3 products for fallback
+  
+  const products: ScrapedPrice[] = [];
+  
+  for (let i = 0; i < productCount; i++) {
+    const priceVariation = 0.9 + Math.random() * 0.2; // ±10% variation for fallback
+    const finalPrice = Math.floor(basePrice * siteMultiplier * priceVariation);
+    
+    products.push({
+      price: finalPrice,
+      title: `${productName} - ${generateProductVariant(i)} (Estimated)`,
+      platform: `${siteName} (Est.)`,
+      url: generateProductUrl(siteName, productName)
+    });
+  }
+  
+  return products;
 }
 
 /**
@@ -438,21 +465,43 @@ export async function handlePriceQuery(userInput: string): Promise<PriceQueryRes
   const allPrices: ScrapedPrice[] = [];
   const errors: string[] = [];
   
-  // Simulate scraping sites in parallel (same logic as Python)
+  // Simulate scraping sites in parallel with better error handling
   const scrapePromises = sites.map(async (site) => {
     try {
       const prices = await scrapeWebsite(site, product);
       allPrices.push(...prices);
+      console.log(`✅ Successfully scraped ${prices.length} products from ${site}`);
       return { success: true, site, count: prices.length };
     } catch (error) {
       const errorMessage = `${site}: ${error instanceof Error ? error.message : 'Unknown error'}`;
       errors.push(errorMessage);
-      console.error(`❌ Failed to scrape ${site}:`, error);
+      console.warn(`⚠️ Failed to scrape ${site}:`, errorMessage);
+      
+      // For Croma specifically, try a retry with different approach
+      if (site === 'Croma') {
+        try {
+          console.log(`🔄 Retrying ${site} with fallback method...`);
+          await new Promise(resolve => setTimeout(resolve, 200));
+          const fallbackPrices = await generateFallbackPrices(site, product);
+          allPrices.push(...fallbackPrices);
+          console.log(`✅ Fallback scraping successful for ${site}`);
+          return { success: true, site, count: fallbackPrices.length, fallback: true };
+        } catch (fallbackError) {
+          console.error(`❌ Fallback also failed for ${site}:`, fallbackError);
+        }
+      }
+      
       return { success: false, site, error: errorMessage };
     }
   });
   
-  await Promise.allSettled(scrapePromises);
+  const results = await Promise.allSettled(scrapePromises);
+  
+  // Log scraping summary
+  const successfulSites = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+  const failedSites = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success)).length;
+  
+  console.log(`📊 Scraping Summary: ${successfulSites} successful, ${failedSites} failed, ${allPrices.length} total products`);
   
   if (allPrices.length === 0) {
     return {
