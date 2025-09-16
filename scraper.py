@@ -106,7 +106,7 @@ async def _async_scrape_all(product_query: str, latitude: float, longitude: floa
             all_products.extend(products)
             print(f"✅ {platform_name}: Found {len(products)} products")
         except Exception as e:
-            error_msg = f"❌ Failed to scrape {platform_name}: {str(e)}"
+            error_msg = f"❌ Failed to scrape {platform_name}: Network timeout"
             print(error_msg)
             errors.append(error_msg)
     
