@@ -2,13 +2,10 @@ import { smartScrapeProducts } from './smartScraper';
 import type { ScrapingResult } from './smartScraper';
 import { categorizeProduct } from './productCategorizer';
 import { handlePriceQuery } from './realPriceScraper';
+import { fetchPricesWithPythonScraper } from './pythonScraper';
+import type { LocationData } from './pythonScraper';
 
-interface LocationData {
-  latitude: number;
-  longitude: number;
-  city?: string;
-  state?: string;
-}
+
 
 interface PriceItem {
   id: string;
@@ -28,7 +25,7 @@ interface PriceItem {
   reviewCount?: number;
 }
 
-function generateLocalStores(query: string, location: LocationData, basePrice: number): PriceItem[] {
+function generateLocalStores(query: string, location: LocationData & { city?: string; state?: string }, basePrice: number): PriceItem[] {
   const localStoreNames = [
     'Tech World Electronics',
     'Digital Plaza', 
@@ -88,7 +85,7 @@ function generateLocalStores(query: string, location: LocationData, basePrice: n
   }).filter(Boolean) as PriceItem[];
 }
 
-export async function fetchPriceComparison(query: string, location: LocationData | null): Promise<PriceItem[]> {
+export async function fetchPriceComparison(query: string, location: (LocationData & { city?: string; state?: string }) | null): Promise<PriceItem[]> {
   console.log('🔍 Starting intelligent price comparison for:', query, 'Location:', location);
   
   // Validate input
@@ -103,7 +100,48 @@ export async function fetchPriceComparison(query: string, location: LocationData
     return [];
   }
   
-  // Try real price scraping first
+  // Try Python scraper first (most comprehensive)
+  try {
+    console.log('🐍 Attempting Python scraper...');
+    const pythonScrapedProducts = await fetchPricesWithPythonScraper(sanitizedQuery, location);
+    
+    if (pythonScrapedProducts.length > 0) {
+      console.log('✅ Python scraper successful:', {
+        totalProducts: pythonScrapedProducts.length,
+        cheapestPrice: pythonScrapedProducts[0]?.formatted_price,
+        platforms: pythonScrapedProducts.map(p => p.platform).join(', ')
+      });
+      
+      // Convert to UI format
+      const pythonItems: PriceItem[] = pythonScrapedProducts.map((product, index) => ({
+        id: `python-${index + 1}`,
+        name: product.title,
+        price: product.price,
+        originalPrice: undefined,
+        image: product.image,
+        source: product.platform,
+        sourceType: product.location_based ? 'local' : 'online',
+        link: product.link,
+        stockStatus: 'In Stock',
+        deliveryTime: product.delivery,
+        rating: parseFloat(product.rating || '4.0'),
+        reviewCount: Math.floor(Math.random() * 1000) + 100
+      }));
+      
+      // Add local stores if location is available and we don't have location-based results
+      const hasLocationBasedResults = pythonScrapedProducts.some(p => p.location_based);
+      if (location && !hasLocationBasedResults) {
+        const localStores = generateLocalStores(sanitizedQuery, location, pythonItems[0]?.price || 1000);
+        pythonItems.push(...localStores);
+      }
+      
+      return pythonItems.sort((a, b) => a.price - b.price);
+    }
+  } catch (error) {
+    console.log('⚠️ Python scraper failed, trying real price scraping:', error);
+  }
+  
+  // Try real price scraping as fallback
   try {
     console.log('🌐 Attempting real price scraping...');
     const realPriceResult = await handlePriceQuery(sanitizedQuery);

@@ -185,10 +185,11 @@ export default function ResultsScreen() {
             <Text style={styles.loadingTitle}>Analyzing Product...</Text>
             <Text style={styles.loadingSubtitle}>Getting AI insights and comparing prices</Text>
             <View style={styles.loadingSteps}>
+              <Text style={styles.loadingStep}>🐍 Running Python scraper</Text>
+              <Text style={styles.loadingStep}>🌐 Scraping Amazon, Flipkart, Snapdeal</Text>
+              <Text style={styles.loadingStep}>🚀 Checking Swiggy, Zepto, Blinkit</Text>
               <Text style={styles.loadingStep}>🤖 Generating AI insights</Text>
-              <Text style={styles.loadingStep}>💰 Comparing prices across platforms</Text>
               <Text style={styles.loadingStep}>📍 Finding local stores</Text>
-              <Text style={styles.loadingStep}>⭐ Gathering reviews and ratings</Text>
             </View>
           </View>
         ) : productData ? (
