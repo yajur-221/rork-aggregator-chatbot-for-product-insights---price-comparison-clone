@@ -21,20 +21,64 @@ except:
     CRAWL4AI_AVAILABLE = False
     print("Note: crawl4ai not installed. Quick commerce sites won't work.")
 
+# =============== PRODUCT CATEGORIZATION ===============
+def categorize_product(query: str) -> str:
+    """Categorize product to determine which platforms to use"""
+    query_lower = query.lower().strip()
+    
+    # Fashion/Clothing
+    fashion_keywords = ['shirt', 't-shirt', 'tshirt', 'jeans', 'dress', 'shoes', 'clothing', 
+                       'fashion', 'apparel', 'accessories', 'bags', 'watch', 'jewelry', 
+                       'pants', 'trousers', 'shorts', 'skirt', 'top', 'blouse', 'jacket', 
+                       'coat', 'sweater', 'hoodie', 'cap', 'hat', 'belt', 'sunglasses', 
+                       'footwear', 'sandals', 'sneakers', 'boots']
+    
+    # Groceries/Food
+    grocery_keywords = ['fruits', 'vegetables', 'milk', 'bread', 'rice', 'dal', 'oil', 
+                       'spices', 'grocery', 'food', 'snacks', 'beverages', 'tea', 'coffee',
+                       'sugar', 'flour', 'pasta', 'cereal', 'juice', 'water', 'biscuits']
+    
+    # Electronics
+    electronics_keywords = ['iphone', 'samsung', 'laptop', 'macbook', 'headphones', 
+                           'smartphone', 'tablet', 'camera', 'tv', 'electronics', 
+                           'mobile', 'computer', 'earbuds', 'speaker', 'charger']
+    
+    # Books
+    book_keywords = ['book', 'novel', 'textbook', 'magazine', 'ebook', 'literature', 
+                    'education', 'study', 'dictionary', 'guide']
+    
+    # Home Appliances
+    appliance_keywords = ['refrigerator', 'washing machine', 'microwave', 'ac', 
+                         'air conditioner', 'fan', 'cooler', 'heater', 'appliances']
+    
+    # Check categories
+    for keyword in fashion_keywords:
+        if keyword in query_lower:
+            return 'fashion'
+    
+    for keyword in grocery_keywords:
+        if keyword in query_lower:
+            return 'groceries'
+    
+    for keyword in electronics_keywords:
+        if keyword in query_lower:
+            return 'electronics'
+    
+    for keyword in book_keywords:
+        if keyword in query_lower:
+            return 'books'
+    
+    for keyword in appliance_keywords:
+        if keyword in query_lower:
+            return 'appliances'
+    
+    return 'general'
+
 # =============== CONFIGURATION ===============
 class Config:
     """Configuration settings"""
     # Default timeout
     TIMEOUT = 10
-    
-    # Enable/disable platforms
-    ENABLE_AMAZON = True
-    ENABLE_FLIPKART = True
-    ENABLE_SNAPDEAL = True
-    ENABLE_CROMA = True
-    ENABLE_SWIGGY = True  # Requires location
-    ENABLE_ZEPTO = True   # Requires location
-    ENABLE_BLINKIT = True # Requires location
     
     # Headers for requests
     HEADERS = {
@@ -74,37 +118,58 @@ async def _async_scrape_all(product_query: str, latitude: float, longitude: floa
     print(f"🔍 Searching for: {product_query}")
     print(f"📍 Location: {latitude}, {longitude}")
     
+    # Categorize the product to determine which platforms to use
+    category = categorize_product(product_query)
+    print(f"📦 Product category: {category}")
+    
     all_products = []
     errors = []
     
-    # Run all scrapers concurrently
+    # Run scrapers based on product category
     tasks = []
     
-    # E-commerce sites (don't need location)
-    if Config.ENABLE_AMAZON:
-        tasks.append(('Amazon', scrape_amazon(product_query)))
-    if Config.ENABLE_FLIPKART:
-        tasks.append(('Flipkart', scrape_flipkart(product_query)))
-    if Config.ENABLE_SNAPDEAL:
-        tasks.append(('Snapdeal', scrape_snapdeal(product_query)))
-    if Config.ENABLE_CROMA:
-        tasks.append(('Croma', scrape_croma(product_query)))
+    # Always include general e-commerce sites
+    tasks.append(('Amazon', scrape_amazon(product_query)))
+    tasks.append(('Flipkart', scrape_flipkart(product_query)))
     
-    # Quick commerce sites (need location)
-    if CRAWL4AI_AVAILABLE:
-        if Config.ENABLE_SWIGGY:
-            tasks.append(('Swiggy', scrape_swiggy_instamart(product_query, latitude, longitude)))
-        if Config.ENABLE_ZEPTO:
+    # Add category-specific platforms
+    if category == 'electronics':
+        tasks.append(('Croma', scrape_croma(product_query)))
+        # Snapdeal also has electronics
+        tasks.append(('Snapdeal', scrape_snapdeal(product_query)))
+    elif category == 'groceries':
+        # Quick commerce sites for groceries
+        if CRAWL4AI_AVAILABLE:
+            tasks.append(('Swiggy Instamart', scrape_swiggy_instamart(product_query, latitude, longitude)))
             tasks.append(('Zepto', scrape_zepto(product_query, latitude, longitude)))
-        if Config.ENABLE_BLINKIT:
             tasks.append(('Blinkit', scrape_blinkit(product_query, latitude, longitude)))
+    elif category == 'fashion':
+        # Fashion-specific platforms would go here
+        # For now, Amazon and Flipkart handle fashion well
+        pass
+    elif category == 'books':
+        # Books are well covered by Amazon and Flipkart
+        pass
+    elif category == 'appliances':
+        tasks.append(('Croma', scrape_croma(product_query)))
+    else:
+        # For general/unknown categories, include more platforms
+        tasks.append(('Snapdeal', scrape_snapdeal(product_query)))
+        # Add quick commerce for general items that might be available
+        if CRAWL4AI_AVAILABLE:
+            tasks.append(('Swiggy Instamart', scrape_swiggy_instamart(product_query, latitude, longitude)))
+    
+    print(f"🛒 Using platforms: {[name for name, _ in tasks]}")
     
     # Execute all tasks
     for platform_name, task in tasks:
         try:
             products = await task
-            all_products.extend(products)
-            print(f"✅ {platform_name}: Found {len(products)} products")
+            if products:  # Only add if products were found
+                all_products.extend(products)
+                print(f"✅ {platform_name}: Found {len(products)} products")
+            else:
+                print(f"ℹ️ {platform_name}: No products found")
         except Exception as e:
             error_msg = f"❌ Failed to scrape {platform_name}: Network timeout"
             print(error_msg)

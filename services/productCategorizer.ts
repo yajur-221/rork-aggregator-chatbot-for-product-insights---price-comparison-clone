@@ -133,7 +133,7 @@ const PRODUCT_CATEGORIES: ProductCategory[] = [
   },
   {
     name: 'fashion',
-    keywords: ['shirt', 'jeans', 'dress', 'shoes', 'clothing', 'fashion', 'apparel', 'accessories', 'bags', 'watch', 'jewelry'],
+    keywords: ['shirt', 't-shirt', 'tshirt', 'jeans', 'dress', 'shoes', 'clothing', 'fashion', 'apparel', 'accessories', 'bags', 'watch', 'jewelry', 'pants', 'trousers', 'shorts', 'skirt', 'top', 'blouse', 'jacket', 'coat', 'sweater', 'hoodie', 'cap', 'hat', 'belt', 'sunglasses', 'footwear', 'sandals', 'sneakers', 'boots'],
     priority: 3,
     sites: [
       {
@@ -168,6 +168,33 @@ const PRODUCT_CATEGORIES: ProductCategory[] = [
           image: '.product-image img'
         },
         delay: 2000
+      },
+      {
+        name: 'Amazon Fashion',
+        baseUrl: 'https://www.amazon.in',
+        searchPath: '/s?k=',
+        selectors: {
+          productName: '[data-component-type="s-search-result"] h2 a span',
+          price: '.a-price-whole',
+          image: '[data-component-type="s-search-result"] img',
+          rating: '.a-icon-alt'
+        },
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        },
+        delay: 2000
+      },
+      {
+        name: 'Flipkart Fashion',
+        baseUrl: 'https://www.flipkart.com',
+        searchPath: '/search?q=',
+        selectors: {
+          productName: '._4rR01T',
+          price: '._30jeq3',
+          image: '._396cs4 img',
+          rating: '._3LWZlK'
+        },
+        delay: 2500
       }
     ]
   },
