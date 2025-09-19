@@ -157,7 +157,7 @@ export default function PriceComparisonHome() {
         <View style={styles.centerContainer}>
           {/* Main Title */}
           <Text style={styles.mainTitle}>Find the Best Prices</Text>
-          <Text style={styles.subtitle}>Compare prices across multiple platforms and save money on every purchase. Take a photo or search by text!</Text>
+          <Text style={styles.subtitle}>Compare prices across multiple platforms and save money on every purchase.</Text>
           
           {/* Input Container */}
           <View style={styles.inputContainer}>
