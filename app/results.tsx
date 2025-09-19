@@ -47,6 +47,11 @@ export default function ResultsScreen() {
   const progressAnim = useRef(new Animated.Value(0)).current;
   const stepAnimations = useRef(Array.from({ length: 5 }, () => new Animated.Value(0))).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
+  const floatingParticles = useRef(Array.from({ length: 6 }, () => ({
+    translateY: new Animated.Value(0),
+    opacity: new Animated.Value(0.3),
+    scale: new Animated.Value(1)
+  }))).current;
 
   const handleSend = async (searchQuery?: string) => {
     const newQuery = searchQuery || inputText.trim();
@@ -96,6 +101,42 @@ export default function ResultsScreen() {
       
       pulseAnimation.start();
       rotateAnimation.start();
+      
+      // Start floating particles animation
+      floatingParticles.forEach((particle, index) => {
+        const floatingAnimation = Animated.loop(
+          Animated.sequence([
+            Animated.timing(particle.translateY, {
+              toValue: -30,
+              duration: 2000 + (index * 300),
+              useNativeDriver: true,
+            }),
+            Animated.timing(particle.translateY, {
+              toValue: 0,
+              duration: 2000 + (index * 300),
+              useNativeDriver: true,
+            }),
+          ])
+        );
+        
+        const opacityAnimation = Animated.loop(
+          Animated.sequence([
+            Animated.timing(particle.opacity, {
+              toValue: 0.8,
+              duration: 1500 + (index * 200),
+              useNativeDriver: true,
+            }),
+            Animated.timing(particle.opacity, {
+              toValue: 0.3,
+              duration: 1500 + (index * 200),
+              useNativeDriver: true,
+            }),
+          ])
+        );
+        
+        floatingAnimation.start();
+        opacityAnimation.start();
+      });
       
       // Animate progress and steps
       const stepDuration = 800;
@@ -239,6 +280,25 @@ export default function ResultsScreen() {
                   })
                 }]
               }]} />
+              
+              {/* Floating Particles */}
+              {floatingParticles.map((particle, index) => (
+                <Animated.View
+                  key={`particle-${index}`}
+                  style={[
+                    styles.floatingParticle,
+                    {
+                      left: `${15 + (index * 12)}%`,
+                      top: `${20 + (index * 10)}%`,
+                      transform: [
+                        { translateY: particle.translateY },
+                        { scale: particle.scale }
+                      ],
+                      opacity: particle.opacity,
+                    }
+                  ]}
+                />
+              ))}
             </View>
             
             {/* Main Icon with Pulse */}
@@ -251,7 +311,7 @@ export default function ResultsScreen() {
             </Animated.View>
             
             <Text style={styles.loadingTitle}>Finding Best Deals</Text>
-            <Text style={styles.loadingSubtitle}>Searching across multiple platforms for "{query}"</Text>
+            <Text style={styles.loadingSubtitle}>Searching across multiple platforms for &quot;{query}&quot;</Text>
             
             {/* Progress Bar */}
             <View style={styles.progressContainer}>
@@ -381,7 +441,7 @@ export default function ResultsScreen() {
               <Search color="#6b7280" size={48} />
             </View>
             <Text style={styles.errorTitle}>No results found</Text>
-            <Text style={styles.errorSubtitle}>We couldn't find any deals for "{query}"</Text>
+            <Text style={styles.errorSubtitle}>We couldn&apos;t find any deals for &quot;{query}&quot;</Text>
             <Text style={styles.errorHint}>Try searching for:</Text>
             <View style={styles.suggestionContainer}>
               {['iPhone 15', 'Samsung TV', 'Nike shoes', 'Laptop'].map((suggestion, index) => (
@@ -528,17 +588,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     margin: 12,
-    borderRadius: 28,
+    borderRadius: 32,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.15,
-    shadowRadius: 32,
-    elevation: 12,
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.25,
+    shadowRadius: 40,
+    elevation: 20,
     position: 'relative',
     overflow: 'hidden',
     minHeight: 600,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    backdropFilter: 'blur(20px)',
   },
   backgroundCircles: {
     position: 'absolute',
@@ -550,57 +613,87 @@ const styles = StyleSheet.create({
   circle: {
     position: 'absolute',
     borderRadius: 150,
-    opacity: 0.08,
+    opacity: 0.12,
   },
   circle1: {
-    width: 300,
-    height: 300,
+    width: 320,
+    height: 320,
     backgroundColor: '#3b82f6',
-    top: -100,
-    right: -100,
+    top: -120,
+    right: -120,
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 30,
+    elevation: 10,
   },
   circle2: {
-    width: 200,
-    height: 200,
+    width: 240,
+    height: 240,
     backgroundColor: '#10b981',
-    bottom: -50,
-    left: -50,
+    bottom: -80,
+    left: -80,
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 30,
+    elevation: 10,
+  },
+  floatingParticle: {
+    position: 'absolute',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#3b82f6',
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 4,
   },
   iconContainer: {
     marginBottom: 32,
     alignItems: 'center',
   },
   iconBackground: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: '#3b82f6',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(59, 130, 246, 0.9)',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#3b82f6',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.4,
-    shadowRadius: 24,
-    elevation: 12,
-    borderWidth: 4,
-    borderColor: 'rgba(59, 130, 246, 0.1)',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.6,
+    shadowRadius: 40,
+    elevation: 20,
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    position: 'relative',
   },
   loadingTitle: {
-    fontSize: 32,
-    fontWeight: '800',
+    fontSize: 36,
+    fontWeight: '900',
     color: '#1f2937',
-    marginBottom: 12,
+    marginBottom: 16,
     textAlign: 'center',
-    letterSpacing: -0.5,
+    letterSpacing: -1,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
+    transform: [{ perspective: 1000 }, { rotateX: '2deg' }],
   },
   loadingSubtitle: {
-    fontSize: 17,
+    fontSize: 18,
     color: '#6b7280',
     textAlign: 'center',
-    marginBottom: 40,
-    lineHeight: 26,
-    paddingHorizontal: 8,
-    fontWeight: '500',
+    marginBottom: 48,
+    lineHeight: 28,
+    paddingHorizontal: 16,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0, 0, 0, 0.05)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   progressContainer: {
     width: '100%',
@@ -608,34 +701,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   progressTrack: {
-    height: 8,
-    backgroundColor: '#f1f5f9',
-    borderRadius: 4,
+    height: 12,
+    backgroundColor: 'rgba(241, 245, 249, 0.8)',
+    borderRadius: 6,
     overflow: 'hidden',
-    marginBottom: 12,
-    width: '90%',
+    marginBottom: 16,
+    width: '88%',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    transform: [{ perspective: 1000 }, { rotateX: '1deg' }],
   },
   progressFill: {
     height: '100%',
     backgroundColor: '#3b82f6',
-    borderRadius: 4,
+    borderRadius: 6,
     shadowColor: '#3b82f6',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 6,
+    position: 'relative',
   },
   progressText: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
     color: '#3b82f6',
     textAlign: 'center',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
+    textShadowColor: 'rgba(59, 130, 246, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   stepsContainer: {
     width: '100%',
@@ -646,74 +746,101 @@ const styles = StyleSheet.create({
   stepItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    backgroundColor: 'rgba(248, 250, 252, 0.8)',
+    gap: 18,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    backgroundColor: 'rgba(248, 250, 252, 0.9)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+    transform: [{ perspective: 1000 }, { rotateX: '1deg' }],
   },
   stepIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    transform: [{ perspective: 1000 }, { rotateX: '3deg' }, { rotateY: '-2deg' }],
   },
   stepText: {
     flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
-    lineHeight: 22,
+    fontSize: 17,
+    fontWeight: '700',
+    lineHeight: 24,
+    textShadowColor: 'rgba(0, 0, 0, 0.05)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
   },
   checkmark: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#10b981',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#10b981',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    transform: [{ perspective: 1000 }, { rotateX: '5deg' }],
   },
   checkmarkText: {
     color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '900',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   funFactContainer: {
-    backgroundColor: 'rgba(59, 130, 246, 0.05)',
-    padding: 20,
-    borderRadius: 16,
+    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+    padding: 24,
+    borderRadius: 20,
     width: '100%',
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.1)',
+    borderColor: 'rgba(59, 130, 246, 0.2)',
     shadowColor: '#3b82f6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 6,
+    transform: [{ perspective: 1000 }, { rotateX: '2deg' }],
   },
   funFactTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '800',
     color: '#1f2937',
-    marginBottom: 8,
+    marginBottom: 12,
     textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   funFactText: {
-    fontSize: 15,
+    fontSize: 16,
     color: '#4b5563',
-    lineHeight: 22,
+    lineHeight: 24,
     textAlign: 'center',
-    fontWeight: '500',
+    fontWeight: '600',
+    textShadowColor: 'rgba(0, 0, 0, 0.05)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
   },
   errorScreen: {
     flex: 1,
