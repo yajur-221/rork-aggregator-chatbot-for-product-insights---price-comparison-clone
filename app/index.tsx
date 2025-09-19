@@ -4,32 +4,21 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   StyleSheet,
   SafeAreaView,
   Platform,
 } from 'react-native';
-import { Send, History, Search, Sparkles } from 'lucide-react-native';
+import { Send, Paperclip, HelpCircle } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
-import { Video, ResizeMode } from 'expo-av';
-import { BlurView } from 'expo-blur';
-
-
-
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ChatScreen() {
   const [inputText, setInputText] = useState('');
-  const [searchHistory, setSearchHistory] = useState<string[]>([]);
 
-  const handleSend = async (searchQuery?: string) => {
-    const query = searchQuery || inputText.trim();
+  const handleSend = async () => {
+    const query = inputText.trim();
     if (!query) return;
-
-    // Add to search history
-    if (!searchHistory.includes(query)) {
-      setSearchHistory(prev => [query, ...prev.slice(0, 9)]); // Keep last 10 searches
-    }
 
     // Navigate to results page with the query
     router.push({
@@ -39,360 +28,185 @@ export default function ChatScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar style="light" />
-      {Platform.OS !== 'web' ? (
-        <Video
-          source={{ uri: 'https://cdn.pixabay.com/video/2016/09/14/5242-183786752_large.mp4' }}
-          style={styles.backgroundVideo}
-          shouldPlay
-          isLooping
-          isMuted
-          resizeMode={ResizeMode.COVER}
+      
+      {/* Background Gradient */}
+      <LinearGradient
+        colors={['#1a0b2e', '#2d1b4e', '#1a0b2e']}
+        style={styles.backgroundGradient}
+        start={styles.gradientStart}
+        end={styles.gradientEnd}
+      />
+      
+      {/* Curved Earth-like element at bottom */}
+      <View style={styles.earthContainer}>
+        <LinearGradient
+          colors={['#4c1d95', '#6b21a8', '#7c3aed']}
+          style={styles.earthGradient}
+          start={styles.earthGradientStart}
+          end={styles.earthGradientEnd}
         />
-      ) : (
-        <video
-          autoPlay
-          loop
-          muted
-          style={styles.webVideo}
-        >
-          <source src="https://cdn.pixabay.com/video/2016/09/14/5242-183786752_large.mp4" type="video/mp4" />
-        </video>
-      )}
-      <View style={styles.overlay} />
-      
-      {/* Fixed Header with Logo and History */}
-      <View style={styles.fixedHeader}>
-        <View style={styles.logoContainer}>
-          <Sparkles color="#2563eb" size={28} />
-          <Text style={styles.logoText}>PriceWise</Text>
-        </View>
-        {Platform.OS !== 'web' ? (
-          <BlurView intensity={20} style={styles.glassHistoryButton}>
-            <TouchableOpacity 
-              style={styles.historyButtonInner}
-              onPress={() => {
-                console.log('Search history:', searchHistory);
-              }}
-            >
-              <History color="#ffffff" size={20} />
-            </TouchableOpacity>
-          </BlurView>
-        ) : (
-          <View style={styles.webGlassHistoryButton}>
-            <TouchableOpacity 
-              style={styles.historyButtonInner}
-              onPress={() => {
-                console.log('Search history:', searchHistory);
-              }}
-            >
-              <History color="#ffffff" size={20} />
-            </TouchableOpacity>
-          </View>
-        )}
+        <View style={styles.earthGlow} />
       </View>
       
-      <View style={styles.welcomeContainer}>
-        <View style={styles.welcomeContent}>
+      <SafeAreaView style={styles.content}>
+        <View style={styles.centerContainer}>
           {/* Main Title */}
-          <Text style={styles.mainTitle}>Find the best prices for any product</Text>
-          <Text style={styles.subtitle}>Compare prices across multiple platforms and get AI-powered insights</Text>
+          <Text style={styles.mainTitle}>What should we build today?</Text>
+          <Text style={styles.subtitle}>Create stunning apps & websites by chatting with AI.</Text>
           
-          <View style={styles.centerInputContainer}>
-            {Platform.OS !== 'web' ? (
-              <BlurView intensity={25} style={styles.glassSearchWrapper}>
-                <View style={styles.searchInputWrapper}>
-                  <Search color="#9ca3af" size={20} style={styles.searchIcon} />
-                  <TextInput
-                    testID="homeSearchInput"
-                    style={styles.centerTextInput}
-                    value={inputText}
-                    onChangeText={setInputText}
-                    placeholder="Search for any product..."
-                    placeholderTextColor="#9ca3af"
-                    multiline
-                    maxLength={500}
-                    onSubmitEditing={() => handleSend()}
-                  />
-                </View>
-              </BlurView>
-            ) : (
-              <View style={styles.webGlassSearchWrapper}>
-                <View style={styles.searchInputWrapper}>
-                  <Search color="#9ca3af" size={20} style={styles.searchIcon} />
-                  <TextInput
-                    testID="homeSearchInput"
-                    style={styles.centerTextInput}
-                    value={inputText}
-                    onChangeText={setInputText}
-                    placeholder="Search for any product..."
-                    placeholderTextColor="#9ca3af"
-                    multiline
-                    maxLength={500}
-                    onSubmitEditing={() => handleSend()}
-                  />
-                </View>
-              </View>
-            )}
-            {Platform.OS !== 'web' ? (
-              <BlurView intensity={20} style={styles.glassSendButton}>
-                <TouchableOpacity
-                  testID="homeSearchSend"
-                  style={[styles.centerSendButton, !inputText.trim() && styles.centerSendButtonDisabled]}
-                  onPress={() => handleSend()}
-                  disabled={!inputText.trim()}
-                >
-                  <Send color="#fff" size={18} />
-                </TouchableOpacity>
-              </BlurView>
-            ) : (
-              <View style={styles.webGlassSendButton}>
-                <TouchableOpacity
-                  testID="homeSearchSend"
-                  style={[styles.centerSendButton, !inputText.trim() && styles.centerSendButtonDisabled]}
-                  onPress={() => handleSend()}
-                  disabled={!inputText.trim()}
-                >
-                  <Send color="#fff" size={18} />
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-          
-          {/* Search History */}
-          {searchHistory.length > 0 && (
-            <View style={styles.historyContainer}>
-              <Text style={styles.historyTitle}>Recent Searches</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.historyScroll}>
-                {searchHistory.slice(0, 5).map((item, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.historyItem}
-                    onPress={() => handleSend(item)}
-                  >
-                    <Text style={styles.historyItemText} numberOfLines={1}>{item}</Text>
+          {/* Input Container */}
+          <View style={styles.inputContainer}>
+            <View style={styles.inputWrapper}>
+              <TextInput
+                testID="homeSearchInput"
+                style={styles.textInput}
+                value={inputText}
+                onChangeText={setInputText}
+                placeholder="Type your idea and we'll build it together."
+                placeholderTextColor="#6b7280"
+                multiline
+                maxLength={500}
+                onSubmitEditing={() => handleSend()}
+              />
+              
+              {/* Bottom toolbar */}
+              <View style={styles.inputToolbar}>
+                <View style={styles.toolbarLeft}>
+                  <TouchableOpacity style={styles.toolbarButton}>
+                    <Paperclip color="#6b7280" size={20} />
                   </TouchableOpacity>
-                ))}
-              </ScrollView>
+                  <TouchableOpacity 
+                    style={styles.toolbarButton}
+                    onPress={() => handleSend()}
+                  >
+                    <Send color="#6b7280" size={20} />
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.toolbarButton}>
+                    <HelpCircle color="#6b7280" size={20} />
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
-          )}
+          </View>
         </View>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#1a0b2e',
   },
-  backgroundVideo: {
+  gradientStart: { x: 0, y: 0 } as const,
+  gradientEnd: { x: 1, y: 1 } as const,
+  earthGradientStart: { x: 0, y: 0 } as const,
+  earthGradientEnd: { x: 1, y: 0 } as const,
+  backgroundGradient: {
     position: 'absolute',
     top: 0,
     left: 0,
-    bottom: 0,
     right: 0,
-  },
-  overlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
     bottom: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
-  
-  // Fixed Header
-  fixedHeader: {
+  earthContainer: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 40,
-    left: 24,
-    right: 24,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  logoText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#ffffff',
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
-  },
-  glassHistoryButton: {
-    borderRadius: 12,
+    bottom: -200,
+    left: -100,
+    right: -100,
+    height: 400,
+    borderRadius: 200,
     overflow: 'hidden',
   },
-  webGlassHistoryButton: {
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    backdropFilter: 'blur(20px)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+  earthGradient: {
+    flex: 1,
+    borderRadius: 200,
   },
-  historyButtonInner: {
-    padding: 12,
+  earthGlow: {
+    position: 'absolute',
+    top: -20,
+    left: -20,
+    right: -20,
+    bottom: -20,
+    borderRadius: 220,
+    backgroundColor: 'rgba(139, 92, 246, 0.3)',
+    ...(Platform.OS === 'web' && {
+      boxShadow: '0 0 100px rgba(139, 92, 246, 0.5), inset 0 0 100px rgba(139, 92, 246, 0.2)',
+    }),
   },
-
-  // Welcome screen styles
-  welcomeContainer: {
+  content: {
+    flex: 1,
+    zIndex: 1,
+  },
+  centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
-    paddingTop: 120,
-    zIndex: 1,
+    maxWidth: 800,
+    alignSelf: 'center',
+    width: '100%',
   },
   mainTitle: {
-    fontSize: 36,
-    fontWeight: '800',
+    fontSize: Platform.OS === 'web' ? 48 : 36,
+    fontWeight: '700',
     color: '#ffffff',
     textAlign: 'center',
     marginBottom: 16,
-    lineHeight: 44,
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 4,
-    marginTop: -60,
+    lineHeight: Platform.OS === 'web' ? 56 : 44,
+    maxWidth: 600,
   },
   subtitle: {
     fontSize: 18,
-    color: '#e5e7eb',
+    color: '#a1a1aa',
     textAlign: 'center',
-    marginBottom: 50,
+    marginBottom: 48,
     lineHeight: 26,
-    paddingHorizontal: 20,
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
+    maxWidth: 500,
   },
-  welcomeContent: {
-    alignItems: 'center',
-    maxWidth: 700,
+  inputContainer: {
     width: '100%',
+    maxWidth: 600,
   },
-
-  centerInputContainer: {
-    flexDirection: 'row',
-    width: '100%',
-    alignItems: 'flex-end',
-    gap: 12,
-    marginBottom: 20,
-  },
-  glassSearchWrapper: {
-    flex: 1,
-    borderRadius: 25,
+  inputWrapper: {
+    backgroundColor: '#2a2a2a',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#3f3f46',
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    ...(Platform.OS === 'web' && {
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+    }),
   },
-  webGlassSearchWrapper: {
-    flex: 1,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    backdropFilter: 'blur(25px)',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-  },
-  searchInputWrapper: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Platform.OS === 'web' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.8)',
-    borderRadius: 25,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderWidth: Platform.OS === 'web' ? 0 : 1,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-  },
-  searchIcon: {
-    marginRight: 12,
-  },
-  centerTextInput: {
-    flex: 1,
+  textInput: {
     fontSize: 16,
-    color: '#333',
-    maxHeight: 120,
-  },
-  glassSendButton: {
-    borderRadius: 25,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  webGlassSendButton: {
-    borderRadius: 25,
-    backgroundColor: 'rgba(37, 99, 235, 0.4)',
-    backdropFilter: 'blur(20px)',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-    boxShadow: '0 8px 32px rgba(37, 99, 235, 0.3)',
-  },
-  centerSendButton: {
-    backgroundColor: '#2563eb',
-    borderRadius: 25,
-    padding: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  centerSendButtonDisabled: {
-    backgroundColor: '#d1d5db',
-    shadowOpacity: 0.1,
-  },
-  historyContainer: {
-    width: '100%',
-    marginTop: 20,
-  },
-  historyTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#e5e7eb',
-    marginBottom: 12,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
-  },
-  historyScroll: {
-    flexDirection: 'row',
-  },
-  historyItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    maxWidth: 150,
-  },
-  historyItemText: {
-    fontSize: 14,
     color: '#ffffff',
-    fontWeight: '500',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    minHeight: 120,
+    maxHeight: 200,
+    textAlignVertical: 'top',
   },
-  webVideo: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-    zIndex: -1,
+  inputToolbar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#3f3f46',
   },
-
+  toolbarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  toolbarButton: {
+    padding: 8,
+    borderRadius: 8,
+  },
 });
