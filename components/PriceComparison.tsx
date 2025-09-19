@@ -80,6 +80,20 @@ export function PriceComparison({ data }: PriceComparisonProps) {
         validUrl = 'https://' + url;
       }
       
+      // Special handling for search URLs - these should always work
+      const isSearchUrl = validUrl.includes('/search') || validUrl.includes('/results');
+      
+      if (isSearchUrl) {
+        // For search URLs, try to open directly
+        try {
+          await Linking.openURL(validUrl);
+          console.log('Successfully opened search URL:', validUrl);
+          return;
+        } catch (searchError) {
+          console.log('Search URL failed, trying fallback:', searchError);
+        }
+      }
+      
       // Check if URL can be opened
       const canOpen = await Linking.canOpenURL(validUrl);
       if (canOpen) {
@@ -88,13 +102,20 @@ export function PriceComparison({ data }: PriceComparisonProps) {
       } else {
         console.error('Cannot open URL:', validUrl);
         // Fallback: try to open the base domain
-        const domain = validUrl.split('/')[2];
-        if (domain) {
+        const urlParts = validUrl.split('/');
+        if (urlParts.length >= 3) {
+          const domain = urlParts[2];
           const fallbackUrl = `https://${domain}`;
-          const canOpenFallback = await Linking.canOpenURL(fallbackUrl);
-          if (canOpenFallback) {
-            await Linking.openURL(fallbackUrl);
-            console.log('Opened fallback URL:', fallbackUrl);
+          try {
+            const canOpenFallback = await Linking.canOpenURL(fallbackUrl);
+            if (canOpenFallback) {
+              await Linking.openURL(fallbackUrl);
+              console.log('Opened fallback URL:', fallbackUrl);
+            } else {
+              console.error('Cannot open fallback URL either:', fallbackUrl);
+            }
+          } catch (fallbackError) {
+            console.error('Fallback URL also failed:', fallbackError);
           }
         }
       }

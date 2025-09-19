@@ -275,26 +275,7 @@ export async function generateAIResponse(query: string): Promise<AIResponse> {
         'No expandable storage',
         'Expensive repairs'
       ],
-      youtubeLinks: [
-        {
-          title: 'iPhone Complete Setup Guide 2024',
-          url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-          videoId: 'dQw4w9WgXcQ',
-          thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg'
-        },
-        {
-          title: 'iPhone Tips and Tricks You Should Know',
-          url: 'https://www.youtube.com/watch?v=oHg5SJYRHA0',
-          videoId: 'oHg5SJYRHA0',
-          thumbnail: 'https://img.youtube.com/vi/oHg5SJYRHA0/mqdefault.jpg'
-        },
-        {
-          title: 'iPhone vs Android - Which Should You Buy?',
-          url: 'https://www.youtube.com/watch?v=9bZkp7q19f0',
-          videoId: '9bZkp7q19f0',
-          thumbnail: 'https://img.youtube.com/vi/9bZkp7q19f0/mqdefault.jpg'
-        }
-      ],
+      youtubeLinks: await generateYouTubeLinks(query),
       generalInsights: 'Premium smartphone with excellent build quality and camera. Higher price but great long-term value with regular updates and strong resale value.'
     };
   }
@@ -325,26 +306,7 @@ export async function generateAIResponse(query: string): Promise<AIResponse> {
         'Can overheat',
         'Battery degrades over time'
       ],
-      youtubeLinks: [
-        {
-          title: 'Best Laptops 2024 - Complete Buying Guide',
-          url: 'https://www.youtube.com/watch?v=kJQP7kiw5Fk',
-          videoId: 'kJQP7kiw5Fk',
-          thumbnail: 'https://img.youtube.com/vi/kJQP7kiw5Fk/mqdefault.jpg'
-        },
-        {
-          title: 'Laptop Setup Tips for Maximum Productivity',
-          url: 'https://www.youtube.com/watch?v=tgbNymZ7vqY',
-          videoId: 'tgbNymZ7vqY',
-          thumbnail: 'https://img.youtube.com/vi/tgbNymZ7vqY/mqdefault.jpg'
-        },
-        {
-          title: 'MacBook vs Windows Laptop - Which to Choose?',
-          url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
-          videoId: 'dQw4w9WgXcQ',
-          thumbnail: 'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg'
-        }
-      ],
+      youtubeLinks: await generateYouTubeLinks(query),
       generalInsights: 'Perfect balance of portability and functionality. Consider your use case, budget, and OS preference when choosing.'
     };
   }
@@ -435,6 +397,7 @@ async function generateAIResponseWithPriceContext(query: string, priceData: any)
 }
 
 async function generateYouTubeLinks(query: string): Promise<{ title: string; url: string; videoId: string; thumbnail: string }[]> {
+  // Generate relevant YouTube search links instead of fake videos
   const searchQueries = [
     `${query} review 2024 India`,
     `${query} unboxing first impressions`,
@@ -443,16 +406,8 @@ async function generateYouTubeLinks(query: string): Promise<{ title: string; url
     `${query} vs alternatives comparison`
   ];
 
-  const videoIds = [
-    'dQw4w9WgXcQ',
-    'oHg5SJYRHA0', 
-    '9bZkp7q19f0',
-    'kJQP7kiw5Fk',
-    'tgbNymZ7vqY'
-  ];
-
   return searchQueries.map((searchQuery, index) => {
-    const videoId = videoIds[index % videoIds.length];
+    const encodedQuery = encodeURIComponent(searchQuery);
     const formattedTitle = searchQuery
       .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
@@ -460,9 +415,9 @@ async function generateYouTubeLinks(query: string): Promise<{ title: string; url
     
     return {
       title: formattedTitle,
-      url: `https://www.youtube.com/watch?v=${videoId}`,
-      videoId,
-      thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+      url: `https://www.youtube.com/results?search_query=${encodedQuery}`,
+      videoId: '', // No specific video ID since we're linking to search results
+      thumbnail: `https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=320&h=180&fit=crop&auto=format` // Generic YouTube-style thumbnail
     };
   });
 }

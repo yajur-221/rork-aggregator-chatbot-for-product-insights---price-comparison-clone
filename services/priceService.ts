@@ -5,6 +5,38 @@ import { handlePriceQuery } from './realPriceScraper';
 import { fetchPricesWithPythonScraper } from './pythonScraper';
 import type { LocationData } from './pythonScraper';
 
+// Helper function to generate valid platform links
+function generateValidLink(platformName: string, query: string): string {
+  const encodedQuery = encodeURIComponent(query);
+  const platform = platformName.toLowerCase();
+  
+  // Map platform names to their actual URLs
+  const platformUrls: Record<string, string> = {
+    'amazon': `https://www.amazon.in/s?k=${encodedQuery}`,
+    'amazon india': `https://www.amazon.in/s?k=${encodedQuery}`,
+    'amazon fresh': `https://www.amazon.in/s?k=${encodedQuery}`,
+    'amazon books': `https://www.amazon.in/s?k=${encodedQuery}`,
+    'amazon fashion': `https://www.amazon.in/s?k=${encodedQuery}`,
+    'amazon appliances': `https://www.amazon.in/s?k=${encodedQuery}`,
+    'flipkart': `https://www.flipkart.com/search?q=${encodedQuery}`,
+    'flipkart fashion': `https://www.flipkart.com/search?q=${encodedQuery}`,
+    'flipkart books': `https://www.flipkart.com/search?q=${encodedQuery}`,
+    'snapdeal': `https://www.snapdeal.com/search?keyword=${encodedQuery}`,
+    'myntra': `https://www.myntra.com/search?q=${encodedQuery}`,
+    'ajio': `https://www.ajio.com/search/?text=${encodedQuery}`,
+    'nykaa fashion': `https://www.nykaafashion.com/search?q=${encodedQuery}`,
+    'croma': `https://www.croma.com/search?q=${encodedQuery}`,
+    'vijay sales': `https://www.vijaysales.com/search/${encodedQuery}`,
+    'reliance digital': `https://www.reliancedigital.in/search?q=${encodedQuery}`,
+    'swiggy instamart': `https://www.swiggy.com/instamart/search?query=${encodedQuery}`,
+    'blinkit': `https://blinkit.com/search?q=${encodedQuery}`,
+    'zepto': `https://www.zepto.com/search?query=${encodedQuery}`,
+    'bigbasket': `https://www.bigbasket.com/ps/?q=${encodedQuery}`,
+  };
+  
+  return platformUrls[platform] || `https://www.google.com/search?q=${encodedQuery}+buy+online+india`;
+}
+
 
 
 interface PriceItem {
@@ -121,7 +153,7 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
         image: product.image,
         source: product.platform,
         sourceType: product.location_based ? 'local' : 'online',
-        link: product.link && product.link !== 'https://example.com/search?q=iphone%2015' && !product.link.includes('example.com') ? product.link : `https://www.${product.platform.toLowerCase().replace(/\s+/g, '')}.com/search?q=${encodeURIComponent(sanitizedQuery)}`,
+        link: product.link && product.link !== 'https://example.com/search?q=iphone%2015' && !product.link.includes('example.com') ? product.link : generateValidLink(product.platform, sanitizedQuery),
         stockStatus: 'In Stock',
         deliveryTime: product.delivery,
         rating: parseFloat(product.rating || '4.0'),
@@ -161,7 +193,7 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
         image: `https://images.unsplash.com/photo-${['1511707171634-5f897ff02aa9', '1560472354-b33ff0c44a43', '1526170375885-4d8ecf77b99f'][index % 3]}?w=200&h=200&fit=crop`,
         source: item.platform,
         sourceType: 'online' as const,
-        link: item.url && !item.url.includes('example.com') ? item.url : `https://www.${item.platform.toLowerCase().replace(/\s+/g, '')}.com/search?q=${encodeURIComponent(sanitizedQuery)}`,
+        link: item.url && !item.url.includes('example.com') ? item.url : generateValidLink(item.platform, sanitizedQuery),
         stockStatus: 'In Stock',
         deliveryTime: '2-3 days',
         rating: Math.round((Math.random() * 1.5 + 3.5) * 10) / 10,
@@ -259,28 +291,28 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
   // Enhanced online stores with realistic pricing and better images
   const onlineStores = categoryStores.length > 0 ? categoryStores.map(site => ({
     name: site.name,
-    link: `${site.baseUrl}${site.searchPath}${encodeURIComponent(sanitizedQuery)}`,
+    link: generateValidLink(site.name, sanitizedQuery),
     logo: 'https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?w=100&h=100&fit=crop',
     discount: Math.random() * 0.15 + 0.05, // 5-20% discount
     reliability: Math.random() * 0.2 + 0.8 // 80-100% reliability
   })) : [
     {
       name: 'Amazon India',
-      link: 'https://www.amazon.in/s?k=' + encodeURIComponent(sanitizedQuery),
+      link: generateValidLink('Amazon India', sanitizedQuery),
       logo: 'https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?w=100&h=100&fit=crop',
       discount: 0.15,
       reliability: 0.95
     },
     {
       name: 'Flipkart',
-      link: 'https://www.flipkart.com/search?q=' + encodeURIComponent(sanitizedQuery),
+      link: generateValidLink('Flipkart', sanitizedQuery),
       logo: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=100&h=100&fit=crop',
       discount: 0.12,
       reliability: 0.92
     },
     {
       name: 'Snapdeal',
-      link: 'https://www.snapdeal.com/search?keyword=' + encodeURIComponent(sanitizedQuery),
+      link: generateValidLink('Snapdeal', sanitizedQuery),
       logo: 'https://images.unsplash.com/photo-1560472355-536de3962603?w=100&h=100&fit=crop',
       discount: 0.20,
       reliability: 0.85
@@ -326,7 +358,7 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
       image: getProductImage(index),
       source: store.name,
       sourceType: 'online' as const,
-      link: store.link,
+      link: generateValidLink(store.name, sanitizedQuery),
       stockStatus: isInStock ? (Math.random() > 0.8 ? 'Limited Stock' : 'In Stock') : 'Out of Stock',
       deliveryTime: isInStock ? `${Math.floor(Math.random() * 3) + 1}-${Math.floor(Math.random() * 3) + 4} days` : 'Not Available',
       rating: Math.round((Math.random() * 1.5 + 3.5) * 10) / 10, // 3.5-5.0 rating

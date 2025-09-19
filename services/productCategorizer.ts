@@ -24,7 +24,7 @@ interface ScrapingSite {
 const PRODUCT_CATEGORIES: ProductCategory[] = [
   {
     name: 'groceries',
-    keywords: ['fruits', 'vegetables', 'milk', 'bread', 'rice', 'dal', 'oil', 'spices', 'grocery', 'food', 'snacks', 'beverages', 'butter', 'cheese', 'yogurt', 'eggs', 'meat', 'chicken', 'fish', 'flour', 'sugar', 'salt', 'tea', 'coffee', 'juice', 'water', 'biscuits', 'cookies', 'chocolate', 'candy', 'cereals', 'pasta', 'noodles', 'sauce', 'ketchup', 'pickle', 'jam', 'honey', 'nuts', 'dry fruits'],
+    keywords: ['fruits', 'vegetables', 'milk', 'bread', 'rice', 'dal', 'oil', 'spices', 'grocery', 'food', 'snacks', 'beverages', 'butter', 'cheese', 'yogurt', 'eggs', 'meat', 'chicken', 'fish', 'flour', 'sugar', 'salt', 'tea', 'coffee', 'juice', 'water', 'biscuits', 'cookies', 'chocolate', 'candy', 'cereals', 'pasta', 'noodles', 'sauce', 'ketchup', 'pickle', 'jam', 'honey', 'nuts', 'dry fruits', 'onion', 'potato', 'tomato', 'apple', 'banana', 'orange', 'mango', 'grapes', 'carrot', 'cabbage', 'spinach', 'paneer', 'ghee', 'atta', 'wheat', 'pulses', 'lentils', 'masala', 'turmeric', 'chili', 'garam masala', 'cumin', 'coriander'],
     priority: 1,
     sites: [
       {
@@ -72,6 +72,17 @@ const PRODUCT_CATEGORIES: ProductCategory[] = [
           image: '.ProductImage___StyledImg'
         },
         delay: 3000
+      },
+      {
+        name: 'Amazon Fresh',
+        baseUrl: 'https://www.amazon.in',
+        searchPath: '/s?k=',
+        selectors: {
+          productName: '[data-component-type="s-search-result"] h2 a span',
+          price: '.a-price-whole',
+          image: '[data-component-type="s-search-result"] img'
+        },
+        delay: 2000
       }
     ]
   },
@@ -305,7 +316,7 @@ export function categorizeProduct(query: string): ProductCategory | null {
     }
   }
   
-  if (bestMatch && bestMatch.score >= 15) { // Only return if we have a strong match
+  if (bestMatch && bestMatch.score >= 8) { // Lowered threshold for better matching
     console.log(`Best match: "${bestMatch.category.name}" with score ${bestMatch.score}`);
     console.log(`Available platforms for this category:`, bestMatch.category.sites.map(s => s.name));
     return bestMatch.category;
