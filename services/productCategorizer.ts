@@ -261,6 +261,8 @@ const PRODUCT_CATEGORIES: ProductCategory[] = [
 export function categorizeProduct(query: string): ProductCategory | null {
   const normalizedQuery = query.toLowerCase().trim();
   
+  console.log('Categorizing product:', normalizedQuery);
+  
   // Find the best matching category
   let bestMatch: { category: ProductCategory; score: number } | null = null;
   
@@ -273,18 +275,30 @@ export function categorizeProduct(query: string): ProductCategory | null {
         const words = normalizedQuery.split(/\s+/);
         if (words.includes(keyword)) {
           score += 10;
+          console.log(`Exact match found: "${keyword}" in category "${category.name}" (+10 points)`);
         } else {
           score += 5; // Partial match
+          console.log(`Partial match found: "${keyword}" in category "${category.name}" (+5 points)`);
         }
       }
     }
     
     // Apply priority bonus
-    score *= (5 - category.priority + 1);
+    const priorityMultiplier = (5 - category.priority + 1);
+    score *= priorityMultiplier;
+    
+    console.log(`Category "${category.name}" final score: ${score} (priority multiplier: ${priorityMultiplier})`);
     
     if (score > 0 && (!bestMatch || score > bestMatch.score)) {
       bestMatch = { category, score };
     }
+  }
+  
+  if (bestMatch) {
+    console.log(`Best match: "${bestMatch.category.name}" with score ${bestMatch.score}`);
+    console.log(`Available platforms for this category:`, bestMatch.category.sites.map(s => s.name));
+  } else {
+    console.log('No category match found, will use general electronics sites');
   }
   
   return bestMatch?.category || null;

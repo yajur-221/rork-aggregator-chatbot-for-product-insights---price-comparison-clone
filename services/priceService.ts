@@ -253,6 +253,9 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
   // Get category-specific stores or use general e-commerce sites
   const categoryStores = category?.sites || [];
   
+  console.log('Category-specific stores found:', categoryStores.length);
+  console.log('Category stores:', categoryStores.map(s => s.name));
+  
   // Enhanced online stores with realistic pricing and better images
   const onlineStores = categoryStores.length > 0 ? categoryStores.map(site => ({
     name: site.name,
@@ -284,7 +287,9 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
     }
   ];
   
-  console.log('Processing', onlineStores.length, 'online stores...');
+  console.log('Final online stores to use:', onlineStores.map(s => s.name));
+  
+  console.log('Processing', onlineStores.length, 'online stores for category:', category?.name || 'general');
 
   // Generate product images based on query
   const getProductImage = (index: number) => {

@@ -64,12 +64,76 @@ export function PriceComparison({ data }: PriceComparisonProps) {
     }
   });
 
-  const openLink = (url: string) => {
-    Linking.openURL(url);
+  const openLink = async (url: string) => {
+    try {
+      console.log('Attempting to open URL:', url);
+      
+      // Validate URL format
+      if (!url || typeof url !== 'string') {
+        console.error('Invalid URL provided:', url);
+        return;
+      }
+      
+      // Ensure URL has proper protocol
+      let validUrl = url;
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        validUrl = 'https://' + url;
+      }
+      
+      // Check if URL can be opened
+      const canOpen = await Linking.canOpenURL(validUrl);
+      if (canOpen) {
+        await Linking.openURL(validUrl);
+        console.log('Successfully opened URL:', validUrl);
+      } else {
+        console.error('Cannot open URL:', validUrl);
+        // Fallback: try to open the base domain
+        const domain = validUrl.split('/')[2];
+        if (domain) {
+          const fallbackUrl = `https://${domain}`;
+          const canOpenFallback = await Linking.canOpenURL(fallbackUrl);
+          if (canOpenFallback) {
+            await Linking.openURL(fallbackUrl);
+            console.log('Opened fallback URL:', fallbackUrl);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error opening URL:', error);
+    }
   };
 
-  const callPhone = (phone: string) => {
-    Linking.openURL(`tel:${phone}`);
+  const callPhone = async (phone: string) => {
+    try {
+      console.log('Attempting to call phone:', phone);
+      
+      // Validate phone number format
+      if (!phone || typeof phone !== 'string') {
+        console.error('Invalid phone number provided:', phone);
+        return;
+      }
+      
+      // Clean phone number (remove spaces, dashes, etc.)
+      const cleanPhone = phone.replace(/[^+\d]/g, '');
+      
+      if (cleanPhone.length < 10) {
+        console.error('Phone number too short:', cleanPhone);
+        return;
+      }
+      
+      const telUrl = `tel:${cleanPhone}`;
+      
+      // Check if phone calls are supported
+      const canCall = await Linking.canOpenURL(telUrl);
+      if (canCall) {
+        await Linking.openURL(telUrl);
+        console.log('Successfully initiated call to:', cleanPhone);
+      } else {
+        console.error('Cannot make phone calls on this device');
+      }
+    } catch (error) {
+      console.error('Error making phone call:', error);
+    }
   };
 
   const formatPrice = (price: number) => {
