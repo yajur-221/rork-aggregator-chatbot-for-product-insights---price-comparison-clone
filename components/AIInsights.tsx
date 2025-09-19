@@ -216,10 +216,7 @@ export function AIInsights({ data }: AIInsightsProps) {
         </View>
       )}
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>General Insights</Text>
-        <Text style={styles.insightsText}>{data.generalInsights}</Text>
-      </View>
+
     </ScrollView>
   );
 }

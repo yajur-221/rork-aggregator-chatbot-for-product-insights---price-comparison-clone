@@ -16,7 +16,7 @@ import { StatusBar } from 'expo-status-bar';
 import { router, useLocalSearchParams } from 'expo-router';
 import { AIInsights } from '@/components/AIInsights';
 import { PriceComparison } from '@/components/PriceComparison';
-import { ProductDetails } from '@/components/ProductDetails';
+
 import { useLocation } from '@/hooks/useLocation';
 import { generateAIResponse } from '@/services/aiService';
 import { fetchPriceComparison } from '@/services/priceService';
@@ -25,17 +25,7 @@ import { fetchPriceComparison } from '@/services/priceService';
 interface ProductData {
   aiInsights: any;
   priceComparison: any[];
-  productDetails?: {
-    productName: string;
-    overallRating: number;
-    totalReviews: number;
-    reviews: any[];
-    marketTrends?: {
-      priceHistory: { month: string; price: number }[];
-      popularityScore: number;
-      demandTrend: 'increasing' | 'stable' | 'decreasing';
-    };
-  };
+
 }
 
 export default function ResultsScreen() {
@@ -94,42 +84,18 @@ export default function ResultsScreen() {
         console.log('Price comparison received:', priceComparison ? `${priceComparison.length} items` : 'Failed');
         console.log('Price comparison data:', priceComparison);
         
-        const productDetails = {
-          productName: query as string,
-          overallRating: Math.round((Math.random() * 1.5 + 3.5) * 10) / 10,
-          totalReviews: Math.floor(Math.random() * 2000) + 500,
-          reviews: [
-            { id: '1', userName: 'Rajesh Kumar', rating: 5, comment: 'Excellent product! Great value for money. Highly recommended for anyone looking for quality and performance.', date: '2 days ago', helpful: 23, verified: true },
-            { id: '2', userName: 'Priya Sharma', rating: 4, comment: 'Good product overall. The build quality is solid and it works as expected. Minor issues with setup but customer service was helpful.', date: '1 week ago', helpful: 15, verified: true },
-            { id: '3', userName: 'Amit Singh', rating: 3, comment: 'Average product. Does the job but nothing exceptional. Price could be better for what you get.', date: '2 weeks ago', helpful: 8, verified: false },
-            { id: '4', userName: 'Sneha Patel', rating: 5, comment: 'Amazing! Exceeded my expectations. Fast delivery and excellent packaging. Will definitely buy again.', date: '3 weeks ago', helpful: 31, verified: true },
-            { id: '5', userName: 'Vikram Gupta', rating: 4, comment: 'Solid choice. Good features and reliable performance. Shipping was quick and product arrived in perfect condition.', date: '1 month ago', helpful: 12, verified: true }
-          ],
-          marketTrends: {
-            priceHistory: [
-              { month: 'Aug', price: Math.floor(Math.random() * 5000) + 20000 },
-              { month: 'Sep', price: Math.floor(Math.random() * 5000) + 22000 },
-              { month: 'Oct', price: Math.floor(Math.random() * 5000) + 21000 },
-              { month: 'Nov', price: Math.floor(Math.random() * 5000) + 23000 },
-              { month: 'Dec', price: Math.floor(Math.random() * 5000) + 24000 },
-              { month: 'Jan', price: Math.floor(Math.random() * 5000) + 25000 }
-            ],
-            popularityScore: Math.floor(Math.random() * 30) + 70,
-            demandTrend: ['increasing', 'stable', 'decreasing'][Math.floor(Math.random() * 3)] as 'increasing' | 'stable' | 'decreasing'
-          }
-        };
+
         
         const newProductData = { 
           aiInsights: aiInsights || null, 
-          priceComparison: priceComparison || [], 
-          productDetails 
+          priceComparison: priceComparison || [] 
         };
         console.log('Setting product data:', {
           hasAiInsights: !!newProductData.aiInsights,
           aiInsightsKeys: newProductData.aiInsights ? Object.keys(newProductData.aiInsights) : [],
           hasPriceComparison: !!newProductData.priceComparison,
           priceComparisonLength: newProductData.priceComparison?.length || 0,
-          hasProductDetails: !!newProductData.productDetails
+
         });
         setProductData(newProductData);
       } catch (error) {
@@ -197,8 +163,7 @@ export default function ResultsScreen() {
             console.log('Rendering results with productData:', {
               hasAiInsights: !!productData.aiInsights,
               hasPriceComparison: !!productData.priceComparison,
-              priceComparisonLength: productData.priceComparison?.length,
-              hasProductDetails: !!productData.productDetails
+              priceComparisonLength: productData.priceComparison?.length
             });
             return isTablet ? (
               <View style={styles.tabletLayout}>
@@ -220,17 +185,7 @@ export default function ResultsScreen() {
                     </View>
                   )}
                 </View>
-                <View style={styles.detailsSection}>
-                  {productData.productDetails && (
-                    <ProductDetails 
-                      productName={productData.productDetails.productName}
-                      overallRating={productData.productDetails.overallRating}
-                      totalReviews={productData.productDetails.totalReviews}
-                      reviews={productData.productDetails.reviews}
-                      marketTrends={productData.productDetails.marketTrends}
-                    />
-                  )}
-                </View>
+
               </View>
             ) : (
               <ScrollView ref={scrollViewRef} style={styles.mobileResults} showsVerticalScrollIndicator={false} testID="resultsScroll">
@@ -250,15 +205,7 @@ export default function ResultsScreen() {
                     </View>
                   )}
                 </View>
-                {productData.productDetails && (
-                  <ProductDetails 
-                    productName={productData.productDetails.productName}
-                    overallRating={productData.productDetails.overallRating}
-                    totalReviews={productData.productDetails.totalReviews}
-                    reviews={productData.productDetails.reviews}
-                    marketTrends={productData.productDetails.marketTrends}
-                  />
-                )}
+
               </ScrollView>
             );
           })()
@@ -381,9 +328,7 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: '#e1e5e9',
   },
-  detailsSection: {
-    flex: 1,
-  },
+
   mobileResults: {
     flex: 1,
     paddingTop: 20,
