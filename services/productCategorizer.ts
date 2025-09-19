@@ -285,6 +285,26 @@ export function categorizeProduct(query: string): ProductCategory | null {
   
   console.log('Categorizing product:', normalizedQuery);
   
+  // Handle image-based queries that might have generic names
+  if (normalizedQuery.includes('product from image') || normalizedQuery.includes('identified from your image')) {
+    console.log('Image-based query detected, using enhanced keyword matching');
+    // For image queries, we'll be more lenient and try to extract meaningful keywords
+    const extractedKeywords = normalizedQuery.split(/\s+/).filter(word => 
+      word.length > 3 && 
+      !['product', 'from', 'image', 'identified', 'your'].includes(word)
+    );
+    console.log('Extracted keywords from image query:', extractedKeywords);
+    
+    if (extractedKeywords.length > 0) {
+      // Re-run categorization with extracted keywords
+      const enhancedQuery = extractedKeywords.join(' ');
+      if (enhancedQuery !== normalizedQuery) {
+        console.log('Re-categorizing with enhanced query:', enhancedQuery);
+        return categorizeProduct(enhancedQuery);
+      }
+    }
+  }
+  
   // Find the best matching category
   let bestMatch: { category: ProductCategory; score: number } | null = null;
   
@@ -296,17 +316,47 @@ export function categorizeProduct(query: string): ProductCategory | null {
         // Exact word match gets higher score
         const words = normalizedQuery.split(/\s+/);
         if (words.includes(keyword)) {
-          score += 15; // Increased score for exact matches
-          console.log(`Exact match found: "${keyword}" in category "${category.name}" (+15 points)`);
+          score += 20; // Increased score for exact matches
+          console.log(`Exact match found: "${keyword}" in category "${category.name}" (+20 points)`);
         } else {
-          score += 8; // Increased score for partial matches
-          console.log(`Partial match found: "${keyword}" in category "${category.name}" (+8 points)`);
+          score += 10; // Increased score for partial matches
+          console.log(`Partial match found: "${keyword}" in category "${category.name}" (+10 points)`);
+        }
+      }
+    }
+    
+    // Special handling for brand names and specific product types
+    if (category.name === 'electronics') {
+      const electronicsBrands = ['apple', 'samsung', 'sony', 'lg', 'dell', 'hp', 'lenovo', 'asus', 'acer', 'microsoft', 'google', 'oneplus', 'xiaomi', 'realme', 'oppo', 'vivo', 'nokia', 'motorola', 'huawei'];
+      const electronicsTypes = ['phone', 'laptop', 'tablet', 'tv', 'monitor', 'headphone', 'earphone', 'speaker', 'camera', 'gaming', 'console', 'processor', 'graphics', 'memory', 'storage'];
+      
+      for (const brand of electronicsBrands) {
+        if (normalizedQuery.includes(brand)) {
+          score += 15;
+          console.log(`Electronics brand match: "${brand}" (+15 points)`);
+        }
+      }
+      
+      for (const type of electronicsTypes) {
+        if (normalizedQuery.includes(type)) {
+          score += 12;
+          console.log(`Electronics type match: "${type}" (+12 points)`);
+        }
+      }
+    }
+    
+    if (category.name === 'groceries') {
+      const groceryIndicators = ['organic', 'fresh', 'kg', 'gram', 'liter', 'pack', 'packet', 'box'];
+      for (const indicator of groceryIndicators) {
+        if (normalizedQuery.includes(indicator)) {
+          score += 8;
+          console.log(`Grocery indicator match: "${indicator}" (+8 points)`);
         }
       }
     }
     
     // Apply priority bonus (higher priority = higher multiplier)
-    const priorityMultiplier = (6 - category.priority);
+    const priorityMultiplier = (6 - category.priority) * 0.8; // Reduced multiplier impact
     score *= priorityMultiplier;
     
     console.log(`Category "${category.name}" final score: ${score} (priority multiplier: ${priorityMultiplier})`);
@@ -316,12 +366,13 @@ export function categorizeProduct(query: string): ProductCategory | null {
     }
   }
   
-  if (bestMatch && bestMatch.score >= 5) { // Further lowered threshold for better matching
+  if (bestMatch && bestMatch.score >= 8) { // Adjusted threshold
     console.log(`Best match: "${bestMatch.category.name}" with score ${bestMatch.score}`);
     console.log(`Available platforms for this category:`, bestMatch.category.sites.map(s => s.name));
     return bestMatch.category;
   } else {
     console.log('No strong category match found, will use general e-commerce sites');
+    console.log('Scores:', PRODUCT_CATEGORIES.map(c => ({ name: c.name, score: bestMatch && bestMatch.category === c ? bestMatch.score : 0 })));
     return null;
   }
 }
@@ -335,7 +386,7 @@ export function getScrapingSites(query: string): ScrapingSite[] {
     return category.sites;
   }
   
-  // Fallback to general e-commerce sites (Amazon, Flipkart, Snapdeal)
+  // Fallback to general e-commerce sites - prioritize major platforms
   console.log(`Product "${query}" using general e-commerce sites`);
   const generalSites: ScrapingSite[] = [
     {
@@ -366,12 +417,12 @@ export function getScrapingSites(query: string): ScrapingSite[] {
       delay: 2500
     },
     {
-      name: 'Snapdeal',
-      baseUrl: 'https://www.snapdeal.com',
-      searchPath: '/search?keyword=',
+      name: 'Meesho',
+      baseUrl: 'https://www.meesho.com',
+      searchPath: '/search?q=',
       selectors: {
         productName: '.product-title',
-        price: '.lfloat.product-price',
+        price: '.product-price',
         image: '.product-image img'
       },
       delay: 2000

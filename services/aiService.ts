@@ -2,6 +2,7 @@ import { smartScrapeProducts, generateSmartAIResponse } from './smartScraper';
 import type { ScrapingResult } from './smartScraper';
 import { getEnhancedPriceData, handlePriceQuery } from './realPriceScraper';
 import { searchYouTubeVideos } from './youtubeService';
+import * as FileSystem from 'expo-file-system';
 
 interface AIResponse {
   howToUse: string[];
@@ -489,14 +490,27 @@ async function generateYouTubeLinks(query: string): Promise<{ title: string; url
 async function analyzeProductImage(imageUri: string, fallbackQuery: string): Promise<{ productName: string; confidence: number } | null> {
   try {
     console.log('🔍 Sending image to AI for product identification...');
+    console.log('📸 Image URI:', imageUri);
     
     // Convert image to base64 if it's a local URI
     let base64Image: string;
     if (imageUri.startsWith('file://') || imageUri.startsWith('content://')) {
-      // For local files, we need to read and convert to base64
-      // This is a simplified approach - in a real app you'd use proper file reading
-      base64Image = imageUri; // Placeholder - actual implementation would convert to base64
+      console.log('📱 Converting local image to base64...');
+      try {
+        // For React Native, we need to use FileSystem to read the image
+        const base64Data = await FileSystem.readAsStringAsync(imageUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        base64Image = `data:image/jpeg;base64,${base64Data}`;
+        console.log('✅ Image converted to base64 successfully');
+      } catch (fsError) {
+        console.log('⚠️ FileSystem conversion failed, trying direct URI:', fsError);
+        base64Image = imageUri;
+      }
+    } else if (imageUri.startsWith('data:')) {
+      base64Image = imageUri;
     } else {
+      // Assume it's already a valid image URL or base64
       base64Image = imageUri;
     }
     
@@ -509,14 +523,14 @@ async function analyzeProductImage(imageUri: string, fallbackQuery: string): Pro
         messages: [
           {
             role: 'system',
-            content: 'You are a product identification expert. Analyze the image and identify the product. Return ONLY a JSON object with "productName" (the specific product name for shopping) and "confidence" (0-1 score). Be specific and include brand/model if visible. Focus on making the product name suitable for price comparison searches.'
+            content: 'You are a product identification expert specializing in Indian e-commerce. Analyze the image and identify the specific product for price comparison. Return ONLY a JSON object with "productName" (specific product name suitable for shopping searches in India) and "confidence" (0-1 score). Be very specific - include brand, model, size, color if visible. Focus on making the product name perfect for finding exact matches on Indian shopping sites like Amazon, Flipkart, etc.'
           },
           {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: `Identify this product for price comparison. If you can't identify it clearly, use this fallback: "${fallbackQuery}"`
+                text: `Identify this product for price comparison on Indian e-commerce sites. Be very specific with brand, model, and key features. If you can't identify it clearly, use this fallback: "${fallbackQuery}". Make sure the product name is searchable on sites like Amazon India, Flipkart, etc.`
               },
               {
                 type: 'image',
@@ -531,23 +545,40 @@ async function analyzeProductImage(imageUri: string, fallbackQuery: string): Pro
     if (response.ok) {
       const data = await response.json();
       const completion = data.completion;
+      console.log('🤖 AI response for image analysis:', completion);
       
       try {
         const jsonString = tryExtractJsonString(completion);
         if (jsonString) {
           const result = JSON.parse(sanitizeJsonString(jsonString));
-          if (result.productName && result.confidence) {
+          if (result.productName && typeof result.confidence === 'number') {
             console.log('✅ Product identified:', result.productName, 'confidence:', result.confidence);
-            return result;
+            
+            // Only use the AI result if confidence is reasonable
+            if (result.confidence >= 0.3) {
+              return {
+                productName: result.productName.trim(),
+                confidence: result.confidence
+              };
+            } else {
+              console.log('⚠️ Low confidence result, using fallback');
+            }
           }
         }
       } catch (parseError) {
         console.log('⚠️ Failed to parse image analysis result:', parseError);
       }
+    } else {
+      console.log('❌ AI API returned error status:', response.status);
     }
   } catch (error) {
     console.log('❌ Image analysis API call failed:', error);
   }
   
-  return null;
+  // Return fallback result
+  console.log('🔄 Using fallback query for image analysis');
+  return {
+    productName: fallbackQuery || 'Product from image',
+    confidence: 0.1
+  };
 }
