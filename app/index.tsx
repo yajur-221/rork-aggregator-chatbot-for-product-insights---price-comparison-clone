@@ -103,7 +103,10 @@ export default function PriceComparisonHome() {
                 placeholderTextColor="#9ca3af"
                 multiline
                 maxLength={500}
-                onSubmitEditing={() => handleSend()}
+                onSubmitEditing={handleSend}
+                returnKeyType="search"
+                blurOnSubmit={true}
+                enablesReturnKeyAutomatically={true}
               />
               
               {/* Bottom toolbar */}
