@@ -31,7 +31,7 @@ interface ProductData {
 }
 
 export default function ResultsScreen() {
-  const { query } = useLocalSearchParams<{ query: string }>();
+  const { query, imageUri } = useLocalSearchParams<{ query: string; imageUri?: string }>();
   const { width } = useWindowDimensions();
   const isTablet = useMemo(() => width > 768, [width]);
   const [inputText, setInputText] = useState('');
@@ -188,7 +188,7 @@ export default function ResultsScreen() {
         
         console.log('Fetching AI insights and price comparison...');
         const [aiInsights, priceComparison] = await Promise.all([
-          generateAIResponse(query as string),
+          imageUri ? generateAIResponse(query as string, imageUri as string) : generateAIResponse(query as string),
           fetchPriceComparison(query as string, location)
         ]);
         
@@ -311,7 +311,9 @@ export default function ResultsScreen() {
             </Animated.View>
             
             <Text style={styles.loadingTitle}>Finding Best Deals</Text>
-            <Text style={styles.loadingSubtitle}>Searching across multiple platforms for &quot;{query}&quot;</Text>
+            <Text style={styles.loadingSubtitle}>
+              {imageUri ? 'Analyzing your image and finding the best deals' : `Searching across multiple platforms for "${query}"`}
+            </Text>
             
             {/* Progress Bar */}
             <View style={styles.progressContainer}>

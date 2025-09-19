@@ -9,10 +9,12 @@ import {
   Platform,
   useWindowDimensions,
 } from 'react-native';
-import { Search, TrendingUp, ShoppingCart } from 'lucide-react-native';
+import { Search, Camera, Image } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker';
+import { Alert } from 'react-native';
 
 export default function PriceComparisonHome() {
   const [inputText, setInputText] = useState('');
@@ -27,6 +29,72 @@ export default function PriceComparisonHome() {
       pathname: '/results',
       params: { query }
     });
+  };
+
+  const handleCamera = async () => {
+    try {
+      // Request camera permissions
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Camera permission is required to take photos');
+        return;
+      }
+
+      // Launch camera
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        // Navigate to results page with image
+        router.push({
+          pathname: '/results',
+          params: { 
+            query: 'Product from image',
+            imageUri: result.assets[0].uri
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Camera error:', error);
+      Alert.alert('Error', 'Failed to open camera');
+    }
+  };
+
+  const handleGallery = async () => {
+    try {
+      // Request media library permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Photo library permission is required to select images');
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        // Navigate to results page with image
+        router.push({
+          pathname: '/results',
+          params: { 
+            query: 'Product from image',
+            imageUri: result.assets[0].uri
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Gallery error:', error);
+      Alert.alert('Error', 'Failed to open gallery');
+    }
   };
 
   const dynamicStyles = {
@@ -89,7 +157,7 @@ export default function PriceComparisonHome() {
         <View style={styles.centerContainer}>
           {/* Main Title */}
           <Text style={styles.mainTitle}>Find the Best Prices</Text>
-          <Text style={styles.subtitle}>Compare prices across multiple platforms and save money on every purchase.</Text>
+          <Text style={styles.subtitle}>Compare prices across multiple platforms and save money on every purchase. Take a photo or search by text!</Text>
           
           {/* Input Container */}
           <View style={styles.inputContainer}>
@@ -112,8 +180,11 @@ export default function PriceComparisonHome() {
               {/* Bottom toolbar */}
               <View style={styles.inputToolbar}>
                 <View style={styles.toolbarLeft}>
-                  <TouchableOpacity style={styles.toolbarButton}>
-                    <TrendingUp color="#60a5fa" size={20} />
+                  <TouchableOpacity 
+                    style={styles.toolbarButton}
+                    onPress={handleGallery}
+                  >
+                    <Image color="#60a5fa" size={20} />
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={styles.searchButton}
@@ -122,8 +193,11 @@ export default function PriceComparisonHome() {
                     <Search color="#ffffff" size={20} />
                     <Text style={styles.searchButtonText}>Search</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.toolbarButton}>
-                    <ShoppingCart color="#60a5fa" size={20} />
+                  <TouchableOpacity 
+                    style={styles.cameraButton}
+                    onPress={handleCamera}
+                  >
+                    <Camera color="#ffffff" size={20} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -250,5 +324,17 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  cameraButton: {
+    padding: 10,
+    borderRadius: 12,
+    backgroundColor: 'rgba(34, 197, 94, 0.8)',
+    borderWidth: 1,
+    borderColor: 'rgba(74, 222, 128, 0.5)',
+    ...(Platform.OS === 'web' && {
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
+      boxShadow: '0 4px 16px rgba(34, 197, 94, 0.3)',
+    }),
   },
 });

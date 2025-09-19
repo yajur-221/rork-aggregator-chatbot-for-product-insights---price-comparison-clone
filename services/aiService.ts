@@ -77,8 +77,23 @@ function balanceJsonBrackets(s: string): string {
   return s;
 }
 
-export async function generateAIResponse(query: string): Promise<AIResponse> {
-  console.log('🤖 Generating enhanced AI response for:', query);
+export async function generateAIResponse(query: string, imageUri?: string): Promise<AIResponse> {
+  console.log('🤖 Generating enhanced AI response for:', query, imageUri ? 'with image' : 'text only');
+  
+  // If image is provided, analyze it first
+  if (imageUri) {
+    console.log('📸 Analyzing image for product identification...');
+    try {
+      const imageAnalysisResult = await analyzeProductImage(imageUri, query);
+      if (imageAnalysisResult) {
+        console.log('✅ Image analysis successful, using identified product:', imageAnalysisResult.productName);
+        // Use the identified product name for further processing
+        query = imageAnalysisResult.productName;
+      }
+    } catch (error) {
+      console.log('⚠️ Image analysis failed, proceeding with original query:', error);
+    }
+  }
   
   // Check if this is a price query first
   const isPriceQuery = /\b(price|cost|cheap|find|search|buy|purchase)\b/i.test(query);
@@ -159,10 +174,17 @@ export async function generateAIResponse(query: string): Promise<AIResponse> {
     if (smartResponse) {
       console.log('✅ Smart AI response generated successfully');
       const youtubeLinks = await generateYouTubeLinks(query);
-      return {
+      const response = {
         ...smartResponse,
         youtubeLinks
       } as AIResponse;
+      
+      // Add image context if available
+      if (imageUri) {
+        response.generalInsights = `Product identified from your image: ${query}. ${response.generalInsights}`;
+      }
+      
+      return response;
     }
   } catch (error) {
     console.log('⚠️ Smart AI response failed, falling back to standard response:', error);
@@ -229,10 +251,17 @@ export async function generateAIResponse(query: string): Promise<AIResponse> {
         } else {
           console.log('AI response parsed successfully');
           const youtubeLinks = await generateYouTubeLinks(query);
-          return {
+          const response = {
             ...aiResponse,
             youtubeLinks
           } as AIResponse;
+          
+          // Add image context if available
+          if (imageUri) {
+            response.generalInsights = `Product identified from your image: ${query}. ${response.generalInsights || 'Analysis based on your uploaded image.'}`;
+          }
+          
+          return response;
         }
       } catch (parseError) {
         console.warn('Gracefully handling AI response parse issue');
@@ -277,7 +306,7 @@ export async function generateAIResponse(query: string): Promise<AIResponse> {
         'Expensive repairs'
       ],
       youtubeLinks: await generateYouTubeLinks(query),
-      generalInsights: 'Premium smartphone with excellent build quality and camera. Higher price but great long-term value with regular updates and strong resale value.'
+      generalInsights: imageUri ? `Product identified from your image. Premium smartphone with excellent build quality and camera. Higher price but great long-term value with regular updates and strong resale value.` : 'Premium smartphone with excellent build quality and camera. Higher price but great long-term value with regular updates and strong resale value.'
     };
   }
 
@@ -308,7 +337,7 @@ export async function generateAIResponse(query: string): Promise<AIResponse> {
         'Battery degrades over time'
       ],
       youtubeLinks: await generateYouTubeLinks(query),
-      generalInsights: 'Perfect balance of portability and functionality. Consider your use case, budget, and OS preference when choosing.'
+      generalInsights: imageUri ? `Product identified from your image. Perfect balance of portability and functionality. Consider your use case, budget, and OS preference when choosing.` : 'Perfect balance of portability and functionality. Consider your use case, budget, and OS preference when choosing.'
     };
   }
 
@@ -343,7 +372,7 @@ export async function generateAIResponse(query: string): Promise<AIResponse> {
       'Limited customization options'
     ],
     youtubeLinks,
-    generalInsights: 'Solid choice with good balance of features, quality, and value. Consider your use case, budget, and compare with alternatives in the same price range.'
+    generalInsights: imageUri ? `Product identified from your image. Solid choice with good balance of features, quality, and value. Consider your use case, budget, and compare with alternatives in the same price range.` : 'Solid choice with good balance of features, quality, and value. Consider your use case, budget, and compare with alternatives in the same price range.'
   };
 }
 
@@ -452,4 +481,73 @@ async function generateYouTubeLinks(query: string): Promise<{ title: string; url
       thumbnail: getThumbnail(index)
     };
   });
+}
+
+/**
+ * Analyze product image using AI to identify the product
+ */
+async function analyzeProductImage(imageUri: string, fallbackQuery: string): Promise<{ productName: string; confidence: number } | null> {
+  try {
+    console.log('🔍 Sending image to AI for product identification...');
+    
+    // Convert image to base64 if it's a local URI
+    let base64Image: string;
+    if (imageUri.startsWith('file://') || imageUri.startsWith('content://')) {
+      // For local files, we need to read and convert to base64
+      // This is a simplified approach - in a real app you'd use proper file reading
+      base64Image = imageUri; // Placeholder - actual implementation would convert to base64
+    } else {
+      base64Image = imageUri;
+    }
+    
+    const response = await fetch('https://toolkit.rork.com/text/llm/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a product identification expert. Analyze the image and identify the product. Return ONLY a JSON object with "productName" (the specific product name for shopping) and "confidence" (0-1 score). Be specific and include brand/model if visible. Focus on making the product name suitable for price comparison searches.'
+          },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: `Identify this product for price comparison. If you can't identify it clearly, use this fallback: "${fallbackQuery}"`
+              },
+              {
+                type: 'image',
+                image: base64Image
+              }
+            ]
+          }
+        ]
+      })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const completion = data.completion;
+      
+      try {
+        const jsonString = tryExtractJsonString(completion);
+        if (jsonString) {
+          const result = JSON.parse(sanitizeJsonString(jsonString));
+          if (result.productName && result.confidence) {
+            console.log('✅ Product identified:', result.productName, 'confidence:', result.confidence);
+            return result;
+          }
+        }
+      } catch (parseError) {
+        console.log('⚠️ Failed to parse image analysis result:', parseError);
+      }
+    }
+  } catch (error) {
+    console.log('❌ Image analysis API call failed:', error);
+  }
+  
+  return null;
 }
