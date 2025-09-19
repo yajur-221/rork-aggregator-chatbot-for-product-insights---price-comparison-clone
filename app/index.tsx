@@ -9,12 +9,12 @@ import {
   Platform,
   useWindowDimensions,
 } from 'react-native';
-import { Send, Paperclip, HelpCircle } from 'lucide-react-native';
+import { Search, TrendingUp, ShoppingCart } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 
-export default function ChatScreen() {
+export default function PriceComparisonHome() {
   const [inputText, setInputText] = useState('');
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
@@ -50,9 +50,9 @@ export default function ChatScreen() {
       right: -30,
       bottom: -30,
       borderRadius: screenHeight * 0.4 + 30,
-      backgroundColor: 'rgba(59, 130, 246, 0.2)',
+      backgroundColor: 'rgba(139, 92, 246, 0.2)',
       ...(Platform.OS === 'web' && {
-        boxShadow: '0 0 150px rgba(59, 130, 246, 0.4), inset 0 0 100px rgba(59, 130, 246, 0.1)',
+        boxShadow: '0 0 150px rgba(139, 92, 246, 0.4), inset 0 0 100px rgba(139, 92, 246, 0.1)',
       }),
     },
     gradientStart: { x: 0, y: 0 } as const,
@@ -65,31 +65,31 @@ export default function ChatScreen() {
     <View style={styles.container}>
       <StatusBar style="light" />
       
-      {/* Space Background */}
+      {/* Dark Purple Background */}
       <LinearGradient
-        colors={['#0f0f23', '#1a1a3a', '#2d2d5a']}
+        colors={['#1a0b2e', '#2d1b4e', '#4c1d95']}
         style={styles.backgroundGradient}
         start={dynamicStyles.gradientStart}
         end={dynamicStyles.gradientEnd}
       />
       
-      {/* Earth Curve at Bottom */}
+      {/* Purple Curve at Bottom */}
       <View style={dynamicStyles.earthContainer}>
         <LinearGradient
-          colors={['#1e40af', '#3b82f6', '#60a5fa']}
+          colors={['#6b21a8', '#8b5cf6', '#a855f7']}
           style={dynamicStyles.earthCurve}
           start={dynamicStyles.earthGradientStart}
           end={dynamicStyles.earthGradientEnd}
         />
-        {/* Earth Glow */}
+        {/* Purple Glow */}
         <View style={dynamicStyles.earthGlow} />
       </View>
       
       <SafeAreaView style={styles.content}>
         <View style={styles.centerContainer}>
           {/* Main Title */}
-          <Text style={styles.mainTitle}>What should we build today?</Text>
-          <Text style={styles.subtitle}>Create stunning apps & websites by chatting with AI.</Text>
+          <Text style={styles.mainTitle}>Find the Best Prices</Text>
+          <Text style={styles.subtitle}>Compare prices across multiple platforms and save money on every purchase.</Text>
           
           {/* Input Container */}
           <View style={styles.inputContainer}>
@@ -99,8 +99,8 @@ export default function ChatScreen() {
                 style={styles.textInput}
                 value={inputText}
                 onChangeText={setInputText}
-                placeholder="Type your idea and we'll build it together."
-                placeholderTextColor="#6b7280"
+                placeholder="Search for any product to compare prices..."
+                placeholderTextColor="#9ca3af"
                 multiline
                 maxLength={500}
                 onSubmitEditing={() => handleSend()}
@@ -110,16 +110,17 @@ export default function ChatScreen() {
               <View style={styles.inputToolbar}>
                 <View style={styles.toolbarLeft}>
                   <TouchableOpacity style={styles.toolbarButton}>
-                    <Paperclip color="#6b7280" size={20} />
+                    <TrendingUp color="#a855f7" size={20} />
                   </TouchableOpacity>
                   <TouchableOpacity 
-                    style={styles.toolbarButton}
+                    style={styles.searchButton}
                     onPress={() => handleSend()}
                   >
-                    <Send color="#6b7280" size={20} />
+                    <Search color="#ffffff" size={20} />
+                    <Text style={styles.searchButtonText}>Search</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.toolbarButton}>
-                    <HelpCircle color="#6b7280" size={20} />
+                    <ShoppingCart color="#a855f7" size={20} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -134,7 +135,7 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f23',
+    backgroundColor: '#1a0b2e',
   },
   backgroundGradient: {
     position: 'absolute',
@@ -181,14 +182,16 @@ const styles = StyleSheet.create({
     maxWidth: 700,
   },
   inputWrapper: {
-    backgroundColor: 'rgba(31, 41, 55, 0.8)',
+    backgroundColor: 'rgba(31, 41, 55, 0.3)',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(75, 85, 99, 0.5)',
+    borderColor: 'rgba(139, 92, 246, 0.3)',
     overflow: 'hidden',
-    backdropFilter: 'blur(10px)',
+    backdropFilter: 'blur(20px)',
     ...(Platform.OS === 'web' && {
-      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 0 1px rgba(139, 92, 246, 0.2)',
     }),
   },
   textInput: {
@@ -209,7 +212,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(75, 85, 99, 0.3)',
+    borderTopColor: 'rgba(139, 92, 246, 0.2)',
+    backgroundColor: 'rgba(139, 92, 246, 0.05)',
   },
   toolbarLeft: {
     flexDirection: 'row',
@@ -219,6 +223,29 @@ const styles = StyleSheet.create({
   toolbarButton: {
     padding: 8,
     borderRadius: 8,
-    backgroundColor: 'rgba(55, 65, 81, 0.5)',
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.2)',
+  },
+  searchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: 'rgba(139, 92, 246, 0.8)',
+    borderWidth: 1,
+    borderColor: 'rgba(168, 85, 247, 0.5)',
+    ...(Platform.OS === 'web' && {
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
+      boxShadow: '0 4px 16px rgba(139, 92, 246, 0.3)',
+    }),
+  },
+  searchButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
