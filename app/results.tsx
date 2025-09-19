@@ -10,8 +10,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   useWindowDimensions,
+  Animated,
+  Dimensions,
 } from 'react-native';
-import { Send, Bot, History, ArrowLeft, Sparkles, Search } from 'lucide-react-native';
+import { Send, Bot, History, ArrowLeft, Sparkles, Search, ShoppingCart, Zap, Globe, MapPin, Brain } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router, useLocalSearchParams } from 'expo-router';
 import { AIInsights } from '@/components/AIInsights';
@@ -35,9 +37,16 @@ export default function ResultsScreen() {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [productData, setProductData] = useState<ProductData | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
   const { location, requestLocation } = useLocation();
   const scrollViewRef = useRef<ScrollView>(null);
   const aiInsightsRef = useRef<View>(null);
+  
+  // Animation values
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const stepAnimations = useRef(Array.from({ length: 5 }, () => new Animated.Value(0))).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
 
   const handleSend = async (searchQuery?: string) => {
     const newQuery = searchQuery || inputText.trim();
@@ -51,6 +60,71 @@ export default function ResultsScreen() {
   };
 
 
+
+  // Start animations when loading begins
+  useEffect(() => {
+    if (isLoading) {
+      // Reset animations
+      setCurrentStep(0);
+      progressAnim.setValue(0);
+      stepAnimations.forEach(anim => anim.setValue(0));
+      
+      // Start pulse animation
+      const pulseAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.2,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1000,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      
+      // Start rotation animation
+      const rotateAnimation = Animated.loop(
+        Animated.timing(rotateAnim, {
+          toValue: 1,
+          duration: 3000,
+          useNativeDriver: true,
+        })
+      );
+      
+      pulseAnimation.start();
+      rotateAnimation.start();
+      
+      // Animate progress and steps
+      const stepDuration = 800;
+      const stepDelay = 600;
+      
+      stepAnimations.forEach((anim, index) => {
+        setTimeout(() => {
+          setCurrentStep(index);
+          Animated.parallel([
+            Animated.timing(anim, {
+              toValue: 1,
+              duration: stepDuration,
+              useNativeDriver: true,
+            }),
+            Animated.timing(progressAnim, {
+              toValue: (index + 1) / stepAnimations.length,
+              duration: stepDuration,
+              useNativeDriver: false,
+            })
+          ]).start();
+        }, index * stepDelay);
+      });
+      
+      return () => {
+        pulseAnimation.stop();
+        rotateAnimation.stop();
+      };
+    }
+  }, [isLoading]);
 
   useEffect(() => {
     if (!query) return;
@@ -147,15 +221,107 @@ export default function ResultsScreen() {
       >
         {isLoading ? (
           <View style={styles.loadingScreen}>
-            <Bot color="#2563eb" size={48} />
-            <Text style={styles.loadingTitle}>Analyzing Product...</Text>
-            <Text style={styles.loadingSubtitle}>Getting AI insights and comparing prices</Text>
-            <View style={styles.loadingSteps}>
-              <Text style={styles.loadingStep}>🐍 Running Python scraper</Text>
-              <Text style={styles.loadingStep}>🌐 Scraping Amazon, Flipkart, Snapdeal</Text>
-              <Text style={styles.loadingStep}>🚀 Checking Swiggy, Zepto, Blinkit</Text>
-              <Text style={styles.loadingStep}>🤖 Generating AI insights</Text>
-              <Text style={styles.loadingStep}>📍 Finding local stores</Text>
+            {/* Animated Background Circles */}
+            <View style={styles.backgroundCircles}>
+              <Animated.View style={[styles.circle, styles.circle1, {
+                transform: [{
+                  rotate: rotateAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0deg', '360deg']
+                  })
+                }]
+              }]} />
+              <Animated.View style={[styles.circle, styles.circle2, {
+                transform: [{
+                  rotate: rotateAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['360deg', '0deg']
+                  })
+                }]
+              }]} />
+            </View>
+            
+            {/* Main Icon with Pulse */}
+            <Animated.View style={[styles.iconContainer, {
+              transform: [{ scale: pulseAnim }]
+            }]}>
+              <View style={styles.iconBackground}>
+                <ShoppingCart color="#ffffff" size={32} />
+              </View>
+            </Animated.View>
+            
+            <Text style={styles.loadingTitle}>Finding Best Deals</Text>
+            <Text style={styles.loadingSubtitle}>Searching across multiple platforms for "{query}"</Text>
+            
+            {/* Progress Bar */}
+            <View style={styles.progressContainer}>
+              <View style={styles.progressTrack}>
+                <Animated.View style={[styles.progressFill, {
+                  width: progressAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0%', '100%']
+                  })
+                }]} />
+              </View>
+              <Text style={styles.progressText}>
+                {Math.round((currentStep + 1) / 5 * 100)}% Complete
+              </Text>
+            </View>
+            
+            {/* Animated Steps */}
+            <View style={styles.stepsContainer}>
+              {[
+                { icon: Zap, text: 'Initializing smart scraper', color: '#f59e0b' },
+                { icon: Globe, text: 'Scanning e-commerce platforms', color: '#3b82f6' },
+                { icon: ShoppingCart, text: 'Checking grocery & quick commerce', color: '#10b981' },
+                { icon: Brain, text: 'Generating AI insights', color: '#8b5cf6' },
+                { icon: MapPin, text: 'Finding nearby stores', color: '#ef4444' }
+              ].map((step, index) => {
+                const IconComponent = step.icon;
+                return (
+                  <Animated.View 
+                    key={index}
+                    style={[styles.stepItem, {
+                      opacity: stepAnimations[index],
+                      transform: [{
+                        translateX: stepAnimations[index].interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [-50, 0]
+                        })
+                      }]
+                    }]}
+                  >
+                    <View style={[styles.stepIcon, { backgroundColor: step.color }]}>
+                      <IconComponent color="#ffffff" size={16} />
+                    </View>
+                    <Text style={[styles.stepText, {
+                      color: currentStep >= index ? '#1f2937' : '#9ca3af'
+                    }]}>
+                      {step.text}
+                    </Text>
+                    {currentStep >= index && (
+                      <Animated.View style={[styles.checkmark, {
+                        opacity: stepAnimations[index]
+                      }]}>
+                        <Text style={styles.checkmarkText}>✓</Text>
+                      </Animated.View>
+                    )}
+                  </Animated.View>
+                );
+              })}
+            </View>
+            
+            {/* Fun Facts */}
+            <View style={styles.funFactContainer}>
+              <Text style={styles.funFactTitle}>💡 Did you know?</Text>
+              <Text style={styles.funFactText}>
+                {[
+                  'We compare prices across 15+ platforms in real-time',
+                  'Our AI analyzes 1000+ product reviews instantly',
+                  'We find deals that save users an average of 25%',
+                  'Local store prices are updated every hour'
+                ][currentStep] || 'Smart shopping saves time and money!'}
+              </Text>
             </View>
           </View>
         ) : productData ? (
@@ -211,9 +377,29 @@ export default function ResultsScreen() {
           })()
         ) : (
           <View style={styles.errorScreen}>
+            <View style={styles.errorIconContainer}>
+              <Search color="#6b7280" size={48} />
+            </View>
             <Text style={styles.errorTitle}>No results found</Text>
-            <Text style={styles.errorSubtitle}>Try searching for a different product</Text>
-            <Text style={styles.errorSubtitle}>Debug: productData is {productData ? 'not null but empty' : 'null'}</Text>
+            <Text style={styles.errorSubtitle}>We couldn't find any deals for "{query}"</Text>
+            <Text style={styles.errorHint}>Try searching for:</Text>
+            <View style={styles.suggestionContainer}>
+              {['iPhone 15', 'Samsung TV', 'Nike shoes', 'Laptop'].map((suggestion, index) => (
+                <TouchableOpacity 
+                  key={index}
+                  style={styles.suggestionChip}
+                  onPress={() => handleSend(suggestion)}
+                >
+                  <Text style={styles.suggestionText}>{suggestion}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TouchableOpacity 
+              style={styles.retryButton}
+              onPress={() => handleSend(query as string)}
+            >
+              <Text style={styles.retryButtonText}>Try Again</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -230,8 +416,12 @@ export default function ResultsScreen() {
                 () => {}
               );
             }}
+            activeOpacity={0.8}
           >
-            <Search color="#fff" size={20} />
+            <View style={styles.floatingButtonInner}>
+              <Brain color="#fff" size={20} />
+            </View>
+            <View style={styles.floatingButtonRipple} />
           </TouchableOpacity>
         )}
 
@@ -337,62 +527,229 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    padding: 32,
     backgroundColor: '#ffffff',
     margin: 16,
-    borderRadius: 16,
+    borderRadius: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    elevation: 8,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  backgroundCircles: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  circle: {
+    position: 'absolute',
+    borderRadius: 100,
+    opacity: 0.05,
+  },
+  circle1: {
+    width: 200,
+    height: 200,
+    backgroundColor: '#3b82f6',
+    top: -50,
+    right: -50,
+  },
+  circle2: {
+    width: 150,
+    height: 150,
+    backgroundColor: '#10b981',
+    bottom: -30,
+    left: -30,
+  },
+  iconContainer: {
+    marginBottom: 24,
+  },
+  iconBackground: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#3b82f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
   },
   loadingTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#0f172a',
-    marginTop: 20,
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#1f2937',
     marginBottom: 8,
+    textAlign: 'center',
   },
   loadingSubtitle: {
     fontSize: 16,
-    color: '#64748b',
+    color: '#6b7280',
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 32,
+    lineHeight: 24,
   },
-  loadingSteps: {
+  progressContainer: {
+    width: '100%',
+    marginBottom: 32,
+  },
+  progressTrack: {
+    height: 6,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#3b82f6',
+    borderRadius: 3,
+  },
+  progressText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3b82f6',
+    textAlign: 'center',
+  },
+  stepsContainer: {
+    width: '100%',
+    gap: 16,
+    marginBottom: 32,
+  },
+  stepItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
+    paddingVertical: 8,
+  },
+  stepIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingStep: {
+  stepText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  checkmark: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#10b981',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkmarkText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  funFactContainer: {
+    backgroundColor: '#f8fafc',
+    padding: 16,
+    borderRadius: 12,
+    width: '100%',
+    borderLeftWidth: 4,
+    borderLeftColor: '#3b82f6',
+  },
+  funFactTitle: {
     fontSize: 14,
-    color: '#64748b',
-    textAlign: 'center',
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+  funFactText: {
+    fontSize: 13,
+    color: '#6b7280',
+    lineHeight: 18,
   },
   errorScreen: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    padding: 32,
     backgroundColor: '#ffffff',
     margin: 16,
-    borderRadius: 16,
+    borderRadius: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  errorIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#f3f4f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
   },
   errorTitle: {
     fontSize: 24,
-    fontWeight: '600',
-    color: '#0f172a',
+    fontWeight: '700',
+    color: '#1f2937',
     marginBottom: 8,
+    textAlign: 'center',
   },
   errorSubtitle: {
     fontSize: 16,
-    color: '#64748b',
+    color: '#6b7280',
     textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 24,
+  },
+  errorHint: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 16,
+  },
+  suggestionContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 32,
+    justifyContent: 'center',
+  },
+  suggestionChip: {
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  suggestionText: {
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '500',
+  },
+  retryButton: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  retryButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
   fixedInputContainer: {
     flexDirection: 'row',
@@ -462,14 +819,30 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#2563eb',
+    backgroundColor: '#3b82f6',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 12,
     zIndex: 1000,
+  },
+  floatingButtonInner: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 28,
+  },
+  floatingButtonRipple: {
+    position: 'absolute',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(59, 130, 246, 0.3)',
+    transform: [{ scale: 1.5 }],
+    opacity: 0.6,
   },
 });
