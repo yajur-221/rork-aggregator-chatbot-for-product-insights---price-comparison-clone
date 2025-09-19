@@ -24,7 +24,7 @@ interface ScrapingSite {
 const PRODUCT_CATEGORIES: ProductCategory[] = [
   {
     name: 'groceries',
-    keywords: ['fruits', 'vegetables', 'milk', 'bread', 'rice', 'dal', 'oil', 'spices', 'grocery', 'food', 'snacks', 'beverages'],
+    keywords: ['fruits', 'vegetables', 'milk', 'bread', 'rice', 'dal', 'oil', 'spices', 'grocery', 'food', 'snacks', 'beverages', 'butter', 'cheese', 'yogurt', 'eggs', 'meat', 'chicken', 'fish', 'flour', 'sugar', 'salt', 'tea', 'coffee', 'juice', 'water', 'biscuits', 'cookies', 'chocolate', 'candy', 'cereals', 'pasta', 'noodles', 'sauce', 'ketchup', 'pickle', 'jam', 'honey', 'nuts', 'dry fruits'],
     priority: 1,
     sites: [
       {
@@ -77,7 +77,7 @@ const PRODUCT_CATEGORIES: ProductCategory[] = [
   },
   {
     name: 'electronics',
-    keywords: ['iphone', 'samsung', 'laptop', 'macbook', 'headphones', 'smartphone', 'tablet', 'camera', 'tv', 'electronics', 'mobile', 'computer'],
+    keywords: ['iphone', 'samsung', 'laptop', 'macbook', 'headphones', 'smartphone', 'tablet', 'camera', 'tv', 'electronics', 'mobile', 'computer', 'phone', 'earphones', 'speaker', 'keyboard', 'mouse', 'monitor', 'processor', 'gpu', 'ram', 'ssd', 'hard drive', 'charger', 'cable', 'adapter', 'power bank', 'smartwatch', 'fitness tracker', 'gaming', 'console', 'xbox', 'playstation', 'nintendo'],
     priority: 2,
     sites: [
       {
@@ -128,12 +128,23 @@ const PRODUCT_CATEGORIES: ProductCategory[] = [
           image: '.product-image img'
         },
         delay: 3000
+      },
+      {
+        name: 'Reliance Digital',
+        baseUrl: 'https://www.reliancedigital.in',
+        searchPath: '/search?q=',
+        selectors: {
+          productName: '.sp__name',
+          price: '.TextWeb__Text',
+          image: '.sp__image img'
+        },
+        delay: 2500
       }
     ]
   },
   {
     name: 'fashion',
-    keywords: ['shirt', 't-shirt', 'tshirt', 'jeans', 'dress', 'shoes', 'clothing', 'fashion', 'apparel', 'accessories', 'bags', 'watch', 'jewelry', 'pants', 'trousers', 'shorts', 'skirt', 'top', 'blouse', 'jacket', 'coat', 'sweater', 'hoodie', 'cap', 'hat', 'belt', 'sunglasses', 'footwear', 'sandals', 'sneakers', 'boots'],
+    keywords: ['shirt', 't-shirt', 'tshirt', 'jeans', 'dress', 'shoes', 'clothing', 'fashion', 'apparel', 'accessories', 'bags', 'watch', 'jewelry', 'pants', 'trousers', 'shorts', 'skirt', 'top', 'blouse', 'jacket', 'coat', 'sweater', 'hoodie', 'cap', 'hat', 'belt', 'sunglasses', 'footwear', 'sandals', 'sneakers', 'boots', 'saree', 'kurta', 'lehenga', 'salwar', 'kameez', 'ethnic wear', 'formal wear', 'casual wear', 'sportswear', 'innerwear', 'lingerie', 'socks', 'tie', 'scarf', 'gloves', 'wallet', 'purse', 'backpack', 'handbag'],
     priority: 3,
     sites: [
       {
@@ -274,17 +285,17 @@ export function categorizeProduct(query: string): ProductCategory | null {
         // Exact word match gets higher score
         const words = normalizedQuery.split(/\s+/);
         if (words.includes(keyword)) {
-          score += 10;
-          console.log(`Exact match found: "${keyword}" in category "${category.name}" (+10 points)`);
+          score += 15; // Increased score for exact matches
+          console.log(`Exact match found: "${keyword}" in category "${category.name}" (+15 points)`);
         } else {
-          score += 5; // Partial match
-          console.log(`Partial match found: "${keyword}" in category "${category.name}" (+5 points)`);
+          score += 8; // Increased score for partial matches
+          console.log(`Partial match found: "${keyword}" in category "${category.name}" (+8 points)`);
         }
       }
     }
     
-    // Apply priority bonus
-    const priorityMultiplier = (5 - category.priority + 1);
+    // Apply priority bonus (higher priority = higher multiplier)
+    const priorityMultiplier = (6 - category.priority);
     score *= priorityMultiplier;
     
     console.log(`Category "${category.name}" final score: ${score} (priority multiplier: ${priorityMultiplier})`);
@@ -294,14 +305,14 @@ export function categorizeProduct(query: string): ProductCategory | null {
     }
   }
   
-  if (bestMatch) {
+  if (bestMatch && bestMatch.score >= 15) { // Only return if we have a strong match
     console.log(`Best match: "${bestMatch.category.name}" with score ${bestMatch.score}`);
     console.log(`Available platforms for this category:`, bestMatch.category.sites.map(s => s.name));
+    return bestMatch.category;
   } else {
-    console.log('No category match found, will use general electronics sites');
+    console.log('No strong category match found, will use general e-commerce sites');
+    return null;
   }
-  
-  return bestMatch?.category || null;
 }
 
 export function getScrapingSites(query: string): ScrapingSite[] {
@@ -313,9 +324,50 @@ export function getScrapingSites(query: string): ScrapingSite[] {
     return category.sites;
   }
   
-  // Fallback to general e-commerce sites
+  // Fallback to general e-commerce sites (Amazon, Flipkart, Snapdeal)
   console.log(`Product "${query}" using general e-commerce sites`);
-  return PRODUCT_CATEGORIES.find(cat => cat.name === 'electronics')?.sites || [];
+  const generalSites: ScrapingSite[] = [
+    {
+      name: 'Amazon India',
+      baseUrl: 'https://www.amazon.in',
+      searchPath: '/s?k=',
+      selectors: {
+        productName: '[data-component-type="s-search-result"] h2 a span',
+        price: '.a-price-whole',
+        image: '[data-component-type="s-search-result"] img',
+        rating: '.a-icon-alt'
+      },
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      },
+      delay: 2000
+    },
+    {
+      name: 'Flipkart',
+      baseUrl: 'https://www.flipkart.com',
+      searchPath: '/search?q=',
+      selectors: {
+        productName: '._4rR01T',
+        price: '._30jeq3',
+        image: '._396cs4 img',
+        rating: '._3LWZlK'
+      },
+      delay: 2500
+    },
+    {
+      name: 'Snapdeal',
+      baseUrl: 'https://www.snapdeal.com',
+      searchPath: '/search?keyword=',
+      selectors: {
+        productName: '.product-title',
+        price: '.lfloat.product-price',
+        image: '.product-image img'
+      },
+      delay: 2000
+    }
+  ];
+  
+  return generalSites;
 }
 
 export { PRODUCT_CATEGORIES, type ProductCategory, type ScrapingSite };

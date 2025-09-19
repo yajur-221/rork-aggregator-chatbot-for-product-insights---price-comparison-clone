@@ -57,6 +57,88 @@ export async function callPythonScraper(
 }
 
 /**
+ * Generate real links to actual e-commerce sites
+ */
+function generateRealLink(platform: string, query: string): string {
+  const encodedQuery = encodeURIComponent(query);
+  
+  switch (platform.toLowerCase()) {
+    case 'amazon':
+      return `https://www.amazon.in/s?k=${encodedQuery}`;
+    case 'flipkart':
+      return `https://www.flipkart.com/search?q=${encodedQuery}`;
+    case 'snapdeal':
+      return `https://www.snapdeal.com/search?keyword=${encodedQuery}`;
+    case 'croma':
+      return `https://www.croma.com/search?q=${encodedQuery}`;
+    case 'myntra':
+      return `https://www.myntra.com/search?q=${encodedQuery}`;
+    case 'ajio':
+      return `https://www.ajio.com/search/?text=${encodedQuery}`;
+    case 'swiggy instamart':
+      return `https://www.swiggy.com/instamart/search?query=${encodedQuery}`;
+    case 'zepto':
+      return `https://www.zepto.com/search?query=${encodedQuery}`;
+    case 'blinkit':
+      return `https://blinkit.com/search?q=${encodedQuery}`;
+    case 'bigbasket':
+      return `https://www.bigbasket.com/ps/?q=${encodedQuery}`;
+    default:
+      return `https://www.google.com/search?q=${encodedQuery}+buy+online`;
+  }
+}
+
+/**
+ * Check if a product is grocery-related
+ */
+function isGroceryItem(query: string): boolean {
+  const groceryKeywords = [
+    'milk', 'bread', 'rice', 'dal', 'oil', 'spices', 'fruits', 'vegetables',
+    'grocery', 'food', 'snacks', 'beverages', 'butter', 'cheese', 'yogurt',
+    'eggs', 'meat', 'chicken', 'fish', 'flour', 'sugar', 'salt', 'tea',
+    'coffee', 'juice', 'water', 'biscuits', 'cookies', 'chocolate', 'candy'
+  ];
+  
+  const queryLower = query.toLowerCase();
+  return groceryKeywords.some(keyword => queryLower.includes(keyword));
+}
+
+/**
+ * Get relevant platforms based on product type
+ */
+function getRelevantPlatforms(productQuery: string): Array<{name: string, color: string, basePrice: number}> {
+  const queryLower = productQuery.toLowerCase();
+  
+  // Fashion items
+  if (queryLower.includes('shirt') || queryLower.includes('jeans') || queryLower.includes('dress') || 
+      queryLower.includes('shoes') || queryLower.includes('clothing') || queryLower.includes('fashion')) {
+    return [
+      { name: 'Myntra', color: '#FF3F6C', basePrice: 1.0 },
+      { name: 'Ajio', color: '#D4AF37', basePrice: 0.95 },
+      { name: 'Amazon', color: '#FF9900', basePrice: 1.05 },
+      { name: 'Flipkart', color: '#2874F0', basePrice: 0.98 }
+    ];
+  }
+  
+  // Grocery items
+  if (isGroceryItem(productQuery)) {
+    return [
+      { name: 'BigBasket', color: '#84C225', basePrice: 1.0 },
+      { name: 'Amazon', color: '#FF9900', basePrice: 1.05 },
+      { name: 'Flipkart', color: '#2874F0', basePrice: 1.02 }
+    ];
+  }
+  
+  // Electronics (default)
+  return [
+    { name: 'Amazon', color: '#FF9900', basePrice: 1.0 },
+    { name: 'Flipkart', color: '#2874F0', basePrice: 0.95 },
+    { name: 'Croma', color: '#1BA1E2', basePrice: 1.05 },
+    { name: 'Snapdeal', color: '#E40046', basePrice: 0.90 }
+  ];
+}
+
+/**
  * Simulate the Python scraper response for development
  * Replace this with actual API call to your Python backend
  */
@@ -70,15 +152,11 @@ async function simulatePythonScraper(
   await new Promise(resolve => setTimeout(resolve, 2000));
   
   // Generate mock data similar to Python scraper output
-  const platforms = [
-    { name: 'Amazon', color: '#FF9900', basePrice: 1.0 },
-    { name: 'Flipkart', color: '#2874F0', basePrice: 0.95 },
-    { name: 'Snapdeal', color: '#E40046', basePrice: 0.90 },
-    { name: 'Croma', color: '#1BA1E2', basePrice: 1.05 },
-  ];
+  const platforms = getRelevantPlatforms(productQuery);
   
-  // Add quick commerce if location is available
-  if (location.latitude && location.longitude) {
+  // Add quick commerce if location is available and product is grocery-related
+  const isGroceryProduct = isGroceryItem(productQuery);
+  if (location.latitude && location.longitude && isGroceryProduct) {
     platforms.push(
       { name: 'Swiggy Instamart', color: '#FC8019', basePrice: 1.1 },
       { name: 'Zepto', color: '#7C3AED', basePrice: 1.08 },
@@ -121,12 +199,12 @@ async function simulatePythonScraper(
         price: finalPrice,
         formatted_price: `₹${finalPrice.toLocaleString()}`,
         image: `https://images.unsplash.com/photo-${['1511707171634-5f897ff02aa9', '1560472354-b33ff0c44a43', '1526170375885-4d8ecf77b99f'][index % 3]}?w=200&h=200&fit=crop`,
-        link: `https://example.com/search?q=${encodeURIComponent(productQuery)}`,
+        link: generateRealLink(platform.name, productQuery),
         platform: platform.name,
         platform_color: platform.color,
         delivery: deliveryTimes[platform.name] || '2-3 days',
         rating: (3.5 + Math.random() * 1.5).toFixed(1),
-        location_based: ['Swiggy Instamart', 'Zepto', 'Blinkit'].includes(platform.name)
+        location_based: ['Swiggy Instamart', 'Zepto', 'Blinkit', 'BigBasket'].includes(platform.name)
       });
     }
   });
@@ -232,7 +310,7 @@ function generateFallbackProducts(query: string, location: LocationData): Scrape
       price,
       formatted_price: `₹${price.toLocaleString()}`,
       image: `https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200&h=200&fit=crop`,
-      link: `https://example.com/search?q=${encodeURIComponent(query)}`,
+      link: generateRealLink(platform.name, query),
       platform: platform.name,
       platform_color: platform.color,
       delivery: 'Free Delivery',
