@@ -53,8 +53,8 @@ export default function ChatScreen() {
       <SafeAreaView style={styles.content}>
         <View style={styles.centerContainer}>
           {/* Main Title */}
-          <Text style={styles.mainTitle}>What should we build today?</Text>
-          <Text style={styles.subtitle}>Create stunning apps & websites by chatting with AI.</Text>
+          <Text style={styles.mainTitle}>Find the best prices instantly</Text>
+          <Text style={styles.subtitle}>Compare prices across Amazon, Flipkart, Swiggy & more with AI-powered search.</Text>
           
           {/* Input Container */}
           <View style={styles.inputContainer}>
@@ -64,7 +64,7 @@ export default function ChatScreen() {
                 style={styles.textInput}
                 value={inputText}
                 onChangeText={setInputText}
-                placeholder="Type your idea and we'll build it together."
+placeholder="Search for any product... iPhone 15, laptop, milk, etc."
                 placeholderTextColor="#6b7280"
                 multiline
                 maxLength={500}
