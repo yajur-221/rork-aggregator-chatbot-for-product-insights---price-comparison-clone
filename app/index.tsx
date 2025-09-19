@@ -7,6 +7,7 @@ import {
   StyleSheet,
   SafeAreaView,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { Send, Paperclip, HelpCircle } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -15,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ChatScreen() {
   const [inputText, setInputText] = useState('');
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
   const handleSend = async () => {
     const query = inputText.trim();
@@ -27,34 +29,67 @@ export default function ChatScreen() {
     });
   };
 
+  const dynamicStyles = {
+    earthContainer: {
+      position: 'absolute' as const,
+      bottom: -screenHeight * 0.4,
+      left: -screenWidth * 0.2,
+      right: -screenWidth * 0.2,
+      height: screenHeight * 0.8,
+      borderRadius: screenHeight * 0.4,
+      overflow: 'hidden' as const,
+    },
+    earthCurve: {
+      flex: 1,
+      borderRadius: screenHeight * 0.4,
+    },
+    earthGlow: {
+      position: 'absolute' as const,
+      top: -30,
+      left: -30,
+      right: -30,
+      bottom: -30,
+      borderRadius: screenHeight * 0.4 + 30,
+      backgroundColor: 'rgba(59, 130, 246, 0.2)',
+      ...(Platform.OS === 'web' && {
+        boxShadow: '0 0 150px rgba(59, 130, 246, 0.4), inset 0 0 100px rgba(59, 130, 246, 0.1)',
+      }),
+    },
+    gradientStart: { x: 0, y: 0 } as const,
+    gradientEnd: { x: 1, y: 1 } as const,
+    earthGradientStart: { x: 0, y: 0 } as const,
+    earthGradientEnd: { x: 1, y: 0 } as const,
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
       
-      {/* Background Gradient */}
+      {/* Space Background */}
       <LinearGradient
-        colors={['#1a0b2e', '#2d1b4e', '#1a0b2e']}
+        colors={['#0f0f23', '#1a1a3a', '#2d2d5a']}
         style={styles.backgroundGradient}
-        start={styles.gradientStart}
-        end={styles.gradientEnd}
+        start={dynamicStyles.gradientStart}
+        end={dynamicStyles.gradientEnd}
       />
       
-      {/* Curved Earth-like element at bottom */}
-      <View style={styles.earthContainer}>
+      {/* Earth Curve at Bottom */}
+      <View style={dynamicStyles.earthContainer}>
         <LinearGradient
-          colors={['#4c1d95', '#6b21a8', '#7c3aed']}
-          style={styles.earthGradient}
-          start={styles.earthGradientStart}
-          end={styles.earthGradientEnd}
+          colors={['#1e40af', '#3b82f6', '#60a5fa']}
+          style={dynamicStyles.earthCurve}
+          start={dynamicStyles.earthGradientStart}
+          end={dynamicStyles.earthGradientEnd}
         />
-        <View style={styles.earthGlow} />
+        {/* Earth Glow */}
+        <View style={dynamicStyles.earthGlow} />
       </View>
       
       <SafeAreaView style={styles.content}>
         <View style={styles.centerContainer}>
           {/* Main Title */}
-          <Text style={styles.mainTitle}>Find the best prices instantly</Text>
-          <Text style={styles.subtitle}>Compare prices across Amazon, Flipkart, Swiggy & more with AI-powered search.</Text>
+          <Text style={styles.mainTitle}>What should we build today?</Text>
+          <Text style={styles.subtitle}>Create stunning apps & websites by chatting with AI.</Text>
           
           {/* Input Container */}
           <View style={styles.inputContainer}>
@@ -64,7 +99,7 @@ export default function ChatScreen() {
                 style={styles.textInput}
                 value={inputText}
                 onChangeText={setInputText}
-placeholder="Search for any product... iPhone 15, laptop, milk, etc."
+                placeholder="Type your idea and we'll build it together."
                 placeholderTextColor="#6b7280"
                 multiline
                 maxLength={500}
@@ -99,12 +134,8 @@ placeholder="Search for any product... iPhone 15, laptop, milk, etc."
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a0b2e',
+    backgroundColor: '#0f0f23',
   },
-  gradientStart: { x: 0, y: 0 } as const,
-  gradientEnd: { x: 1, y: 1 } as const,
-  earthGradientStart: { x: 0, y: 0 } as const,
-  earthGradientEnd: { x: 1, y: 0 } as const,
   backgroundGradient: {
     position: 'absolute',
     top: 0,
@@ -112,31 +143,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  earthContainer: {
-    position: 'absolute',
-    bottom: -200,
-    left: -100,
-    right: -100,
-    height: 400,
-    borderRadius: 200,
-    overflow: 'hidden',
-  },
-  earthGradient: {
-    flex: 1,
-    borderRadius: 200,
-  },
-  earthGlow: {
-    position: 'absolute',
-    top: -20,
-    left: -20,
-    right: -20,
-    bottom: -20,
-    borderRadius: 220,
-    backgroundColor: 'rgba(139, 92, 246, 0.3)',
-    ...(Platform.OS === 'web' && {
-      boxShadow: '0 0 100px rgba(139, 92, 246, 0.5), inset 0 0 100px rgba(139, 92, 246, 0.2)',
-    }),
-  },
+
   content: {
     flex: 1,
     zIndex: 1,
@@ -146,67 +153,72 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
-    maxWidth: 800,
+    maxWidth: 1000,
     alignSelf: 'center',
     width: '100%',
   },
   mainTitle: {
-    fontSize: Platform.OS === 'web' ? 48 : 36,
+    fontSize: Platform.OS === 'web' ? 64 : 42,
     fontWeight: '700',
     color: '#ffffff',
     textAlign: 'center',
     marginBottom: 16,
-    lineHeight: Platform.OS === 'web' ? 56 : 44,
-    maxWidth: 600,
+    lineHeight: Platform.OS === 'web' ? 72 : 50,
+    maxWidth: 900,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 18,
-    color: '#a1a1aa',
+    fontSize: Platform.OS === 'web' ? 20 : 18,
+    color: '#9ca3af',
     textAlign: 'center',
     marginBottom: 48,
-    lineHeight: 26,
-    maxWidth: 500,
+    lineHeight: Platform.OS === 'web' ? 28 : 26,
+    maxWidth: 600,
+    fontWeight: '400',
   },
   inputContainer: {
     width: '100%',
-    maxWidth: 600,
+    maxWidth: 700,
   },
   inputWrapper: {
-    backgroundColor: '#2a2a2a',
-    borderRadius: 16,
+    backgroundColor: 'rgba(31, 41, 55, 0.8)',
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#3f3f46',
+    borderColor: 'rgba(75, 85, 99, 0.5)',
     overflow: 'hidden',
+    backdropFilter: 'blur(10px)',
     ...(Platform.OS === 'web' && {
-      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)',
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
     }),
   },
   textInput: {
     fontSize: 16,
     color: '#ffffff',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-    minHeight: 120,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 20,
+    minHeight: 100,
     maxHeight: 200,
     textAlignVertical: 'top',
+    fontWeight: '400',
   },
   inputToolbar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: '#3f3f46',
+    borderTopColor: 'rgba(75, 85, 99, 0.3)',
   },
   toolbarLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
   },
   toolbarButton: {
     padding: 8,
     borderRadius: 8,
+    backgroundColor: 'rgba(55, 65, 81, 0.5)',
   },
 });
