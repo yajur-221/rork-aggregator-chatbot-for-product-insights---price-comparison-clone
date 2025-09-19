@@ -50,9 +50,9 @@ export default function PriceComparisonHome() {
       right: -30,
       bottom: -30,
       borderRadius: screenHeight * 0.4 + 30,
-      backgroundColor: 'rgba(139, 92, 246, 0.2)',
+      backgroundColor: 'rgba(59, 130, 246, 0.2)',
       ...(Platform.OS === 'web' && {
-        boxShadow: '0 0 150px rgba(139, 92, 246, 0.4), inset 0 0 100px rgba(139, 92, 246, 0.1)',
+        boxShadow: '0 0 150px rgba(59, 130, 246, 0.4), inset 0 0 100px rgba(59, 130, 246, 0.1)',
       }),
     },
     gradientStart: { x: 0, y: 0 } as const,
@@ -65,23 +65,23 @@ export default function PriceComparisonHome() {
     <View style={styles.container}>
       <StatusBar style="light" />
       
-      {/* Dark Purple Background */}
+      {/* Dark Blue Background */}
       <LinearGradient
-        colors={['#1a0b2e', '#2d1b4e', '#4c1d95']}
+        colors={['#0f172a', '#1e293b', '#1e40af']}
         style={styles.backgroundGradient}
         start={dynamicStyles.gradientStart}
         end={dynamicStyles.gradientEnd}
       />
       
-      {/* Purple Curve at Bottom */}
+      {/* Blue Curve at Bottom */}
       <View style={dynamicStyles.earthContainer}>
         <LinearGradient
-          colors={['#6b21a8', '#8b5cf6', '#a855f7']}
+          colors={['#1d4ed8', '#3b82f6', '#60a5fa']}
           style={dynamicStyles.earthCurve}
           start={dynamicStyles.earthGradientStart}
           end={dynamicStyles.earthGradientEnd}
         />
-        {/* Purple Glow */}
+        {/* Blue Glow */}
         <View style={dynamicStyles.earthGlow} />
       </View>
       
@@ -110,7 +110,7 @@ export default function PriceComparisonHome() {
               <View style={styles.inputToolbar}>
                 <View style={styles.toolbarLeft}>
                   <TouchableOpacity style={styles.toolbarButton}>
-                    <TrendingUp color="#a855f7" size={20} />
+                    <TrendingUp color="#60a5fa" size={20} />
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={styles.searchButton}
@@ -120,7 +120,7 @@ export default function PriceComparisonHome() {
                     <Text style={styles.searchButtonText}>Search</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.toolbarButton}>
-                    <ShoppingCart color="#a855f7" size={20} />
+                    <ShoppingCart color="#60a5fa" size={20} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -135,7 +135,7 @@ export default function PriceComparisonHome() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a0b2e',
+    backgroundColor: '#0f172a',
   },
   backgroundGradient: {
     position: 'absolute',
@@ -185,13 +185,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(31, 41, 55, 0.3)',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
+    borderColor: 'rgba(59, 130, 246, 0.3)',
     overflow: 'hidden',
     backdropFilter: 'blur(20px)',
     ...(Platform.OS === 'web' && {
       backdropFilter: 'blur(20px)',
       WebkitBackdropFilter: 'blur(20px)',
-      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 0 1px rgba(139, 92, 246, 0.2)',
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 0 1px rgba(59, 130, 246, 0.2)',
     }),
   },
   textInput: {
@@ -212,8 +212,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(139, 92, 246, 0.2)',
-    backgroundColor: 'rgba(139, 92, 246, 0.05)',
+    borderTopColor: 'rgba(59, 130, 246, 0.2)',
+    backgroundColor: 'rgba(59, 130, 246, 0.05)',
   },
   toolbarLeft: {
     flexDirection: 'row',
@@ -223,9 +223,9 @@ const styles = StyleSheet.create({
   toolbarButton: {
     padding: 8,
     borderRadius: 8,
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.2)',
+    borderColor: 'rgba(59, 130, 246, 0.2)',
   },
   searchButton: {
     flexDirection: 'row',
@@ -234,13 +234,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: 'rgba(139, 92, 246, 0.8)',
+    backgroundColor: 'rgba(59, 130, 246, 0.8)',
     borderWidth: 1,
-    borderColor: 'rgba(168, 85, 247, 0.5)',
+    borderColor: 'rgba(96, 165, 250, 0.5)',
     ...(Platform.OS === 'web' && {
       backdropFilter: 'blur(10px)',
       WebkitBackdropFilter: 'blur(10px)',
-      boxShadow: '0 4px 16px rgba(139, 92, 246, 0.3)',
+      boxShadow: '0 4px 16px rgba(59, 130, 246, 0.3)',
     }),
   },
   searchButtonText: {
