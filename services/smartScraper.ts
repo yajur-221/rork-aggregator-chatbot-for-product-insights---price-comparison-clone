@@ -65,11 +65,33 @@ async function scrapeWebsite(site: ScrapingSite, query: string): Promise<Scraped
 function generateBasePrice(query: string): number {
   const normalizedQuery = query.toLowerCase();
   
-  // Grocery items
+  // Grocery items - Fruits
   if (normalizedQuery.includes('apple') || normalizedQuery.includes('banana')) return 150;
+  if (normalizedQuery.includes('orange') || normalizedQuery.includes('mango')) return 120;
+  if (normalizedQuery.includes('grapes')) return 180;
+  
+  // Grocery items - Dairy & Staples
   if (normalizedQuery.includes('milk')) return 60;
   if (normalizedQuery.includes('bread')) return 40;
   if (normalizedQuery.includes('rice')) return 80;
+  if (normalizedQuery.includes('dal') || normalizedQuery.includes('lentils')) return 120;
+  if (normalizedQuery.includes('oil')) return 200;
+  
+  // Grocery items - Dry Fruits & Nuts
+  if (normalizedQuery.includes('almonds') || normalizedQuery.includes('badam')) return 800;
+  if (normalizedQuery.includes('cashews') || normalizedQuery.includes('kaju')) return 1200;
+  if (normalizedQuery.includes('walnuts') || normalizedQuery.includes('akhrot')) return 1000;
+  if (normalizedQuery.includes('pistachios') || normalizedQuery.includes('pista')) return 1500;
+  if (normalizedQuery.includes('raisins') || normalizedQuery.includes('kishmish')) return 400;
+  if (normalizedQuery.includes('dates') || normalizedQuery.includes('khajur')) return 300;
+  if (normalizedQuery.includes('figs') || normalizedQuery.includes('anjeer')) return 600;
+  if (normalizedQuery.includes('peanuts') || normalizedQuery.includes('groundnuts')) return 200;
+  if (normalizedQuery.includes('mixed nuts') || normalizedQuery.includes('dry fruits')) return 900;
+  
+  // Grocery items - Spices
+  if (normalizedQuery.includes('turmeric') || normalizedQuery.includes('chili')) return 100;
+  if (normalizedQuery.includes('cumin') || normalizedQuery.includes('coriander')) return 150;
+  if (normalizedQuery.includes('garam masala')) return 80;
   
   // Electronics
   if (normalizedQuery.includes('iphone')) return 65000;

@@ -24,7 +24,7 @@ interface ScrapingSite {
 const PRODUCT_CATEGORIES: ProductCategory[] = [
   {
     name: 'groceries',
-    keywords: ['fruits', 'vegetables', 'milk', 'bread', 'rice', 'dal', 'oil', 'spices', 'grocery', 'food', 'snacks', 'beverages', 'butter', 'cheese', 'yogurt', 'eggs', 'meat', 'chicken', 'fish', 'flour', 'sugar', 'salt', 'tea', 'coffee', 'juice', 'water', 'biscuits', 'cookies', 'chocolate', 'candy', 'cereals', 'pasta', 'noodles', 'sauce', 'ketchup', 'pickle', 'jam', 'honey', 'nuts', 'dry fruits', 'onion', 'potato', 'tomato', 'apple', 'banana', 'orange', 'mango', 'grapes', 'carrot', 'cabbage', 'spinach', 'paneer', 'ghee', 'atta', 'wheat', 'pulses', 'lentils', 'masala', 'turmeric', 'chili', 'garam masala', 'cumin', 'coriander'],
+    keywords: ['fruits', 'vegetables', 'milk', 'bread', 'rice', 'dal', 'oil', 'spices', 'grocery', 'food', 'snacks', 'beverages', 'butter', 'cheese', 'yogurt', 'eggs', 'meat', 'chicken', 'fish', 'flour', 'sugar', 'salt', 'tea', 'coffee', 'juice', 'water', 'biscuits', 'cookies', 'chocolate', 'candy', 'cereals', 'pasta', 'noodles', 'sauce', 'ketchup', 'pickle', 'jam', 'honey', 'nuts', 'dry fruits', 'onion', 'potato', 'tomato', 'apple', 'banana', 'orange', 'mango', 'grapes', 'carrot', 'cabbage', 'spinach', 'paneer', 'ghee', 'atta', 'wheat', 'pulses', 'lentils', 'masala', 'turmeric', 'chili', 'garam masala', 'cumin', 'coriander', 'almonds', 'cashews', 'walnuts', 'pistachios', 'raisins', 'dates', 'figs', 'peanuts', 'groundnuts', 'badam', 'kaju', 'akhrot', 'pista', 'kishmish', 'khajur', 'anjeer', 'moongfali', 'dry fruit', 'mixed nuts', 'trail mix', 'organic', 'fresh', 'frozen', 'canned', 'packaged', 'instant', 'ready to eat', 'cooking', 'baking', 'condiments', 'dairy', 'beverages', 'health food', 'baby food', 'pet food'],
     priority: 1,
     sites: [
       {
@@ -316,7 +316,7 @@ export function categorizeProduct(query: string): ProductCategory | null {
     }
   }
   
-  if (bestMatch && bestMatch.score >= 8) { // Lowered threshold for better matching
+  if (bestMatch && bestMatch.score >= 5) { // Further lowered threshold for better matching
     console.log(`Best match: "${bestMatch.category.name}" with score ${bestMatch.score}`);
     console.log(`Available platforms for this category:`, bestMatch.category.sites.map(s => s.name));
     return bestMatch.category;
