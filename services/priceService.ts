@@ -266,6 +266,12 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
   // Set realistic base prices based on product type and category
   if (category?.name === 'groceries') {
     basePrice = Math.floor(Math.random() * 200) + 50; // ₹50-₹250
+  } else if (category?.name === 'fashion') {
+    basePrice = Math.floor(Math.random() * 3000) + 500; // ₹500-₹3,500
+  } else if (category?.name === 'books') {
+    basePrice = Math.floor(Math.random() * 800) + 200; // ₹200-₹1,000
+  } else if (category?.name === 'home_appliances') {
+    basePrice = Math.floor(Math.random() * 50000) + 15000; // ₹15,000-₹65,000
   } else if (productName.includes('iphone') || productName.includes('smartphone')) {
     basePrice = Math.floor(Math.random() * 40000) + 30000; // ₹30,000-₹70,000
   } else if (productName.includes('laptop') || productName.includes('macbook')) {
@@ -274,8 +280,6 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
     basePrice = Math.floor(Math.random() * 8000) + 2000; // ₹2,000-₹10,000
   } else if (productName.includes('watch') || productName.includes('smartwatch')) {
     basePrice = Math.floor(Math.random() * 15000) + 5000; // ₹5,000-₹20,000
-  } else if (category?.name === 'fashion') {
-    basePrice = Math.floor(Math.random() * 3000) + 500; // ₹500-₹3,500
   } else {
     basePrice = Math.floor(Math.random() * 30000) + 10000; // ₹10,000-₹40,000
   }
@@ -287,39 +291,51 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
   
   console.log('Category-specific stores found:', categoryStores.length);
   console.log('Category stores:', categoryStores.map(s => s.name));
+  console.log('Product category:', category?.name || 'general');
   
   // Enhanced online stores with realistic pricing and better images
-  const onlineStores = categoryStores.length > 0 ? categoryStores.map(site => ({
-    name: site.name,
-    link: generateValidLink(site.name, sanitizedQuery),
-    logo: 'https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?w=100&h=100&fit=crop',
-    discount: Math.random() * 0.15 + 0.05, // 5-20% discount
-    reliability: Math.random() * 0.2 + 0.8 // 80-100% reliability
-  })) : [
-    {
-      name: 'Amazon India',
-      link: generateValidLink('Amazon India', sanitizedQuery),
+  let onlineStores: {name: string; link: string; logo: string; discount: number; reliability: number}[];
+  
+  if (categoryStores.length > 0) {
+    // Use category-specific stores
+    onlineStores = categoryStores.map(site => ({
+      name: site.name,
+      link: generateValidLink(site.name, sanitizedQuery),
       logo: 'https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?w=100&h=100&fit=crop',
-      discount: 0.15,
-      reliability: 0.95
-    },
-    {
-      name: 'Flipkart',
-      link: generateValidLink('Flipkart', sanitizedQuery),
-      logo: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=100&h=100&fit=crop',
-      discount: 0.12,
-      reliability: 0.92
-    },
-    {
-      name: 'Snapdeal',
-      link: generateValidLink('Snapdeal', sanitizedQuery),
-      logo: 'https://images.unsplash.com/photo-1560472355-536de3962603?w=100&h=100&fit=crop',
-      discount: 0.20,
-      reliability: 0.85
-    }
-  ];
+      discount: Math.random() * 0.15 + 0.05, // 5-20% discount
+      reliability: Math.random() * 0.2 + 0.8 // 80-100% reliability
+    }));
+    console.log('Using category-specific platforms:', onlineStores.map(s => s.name));
+  } else {
+    // Use general e-commerce sites only for uncategorized products
+    onlineStores = [
+      {
+        name: 'Amazon India',
+        link: generateValidLink('Amazon India', sanitizedQuery),
+        logo: 'https://images.unsplash.com/photo-1523474253046-8cd2748b5fd2?w=100&h=100&fit=crop',
+        discount: 0.15,
+        reliability: 0.95
+      },
+      {
+        name: 'Flipkart',
+        link: generateValidLink('Flipkart', sanitizedQuery),
+        logo: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=100&h=100&fit=crop',
+        discount: 0.12,
+        reliability: 0.92
+      },
+      {
+        name: 'Snapdeal',
+        link: generateValidLink('Snapdeal', sanitizedQuery),
+        logo: 'https://images.unsplash.com/photo-1560472355-536de3962603?w=100&h=100&fit=crop',
+        discount: 0.20,
+        reliability: 0.85
+      }
+    ];
+    console.log('Using general e-commerce platforms:', onlineStores.map(s => s.name));
+  }
   
   console.log('Final online stores to use:', onlineStores.map(s => s.name));
+  console.log('These platforms are relevant for category:', category?.name || 'general');
   
   console.log('Processing', onlineStores.length, 'online stores for category:', category?.name || 'general');
 

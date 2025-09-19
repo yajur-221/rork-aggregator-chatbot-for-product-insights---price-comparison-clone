@@ -397,14 +397,29 @@ async function generateAIResponseWithPriceContext(query: string, priceData: any)
 }
 
 async function generateYouTubeLinks(query: string): Promise<{ title: string; url: string; videoId: string; thumbnail: string }[]> {
-  // Generate relevant YouTube search links instead of fake videos
+  // Generate relevant YouTube search links with proper product-specific queries
+  const productName = query.toLowerCase().trim();
+  
+  // Create more specific and relevant search queries
   const searchQueries = [
-    `${query} review 2024 India`,
-    `${query} unboxing first impressions`,
-    `${query} setup guide tutorial`,
-    `best ${query} buying guide India`,
-    `${query} vs alternatives comparison`
+    `${query} review 2024`,
+    `${query} unboxing`,
+    `how to use ${query}`,
+    `${query} buying guide`,
+    `${query} comparison`
   ];
+
+  // Generate product-specific thumbnails
+  const getThumbnail = (index: number) => {
+    const thumbnails = [
+      'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=320&h=180&fit=crop', // YouTube play button
+      'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=320&h=180&fit=crop', // Tech product
+      'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=320&h=180&fit=crop', // Gadget
+      'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=320&h=180&fit=crop', // Device
+      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=320&h=180&fit=crop'  // Product comparison
+    ];
+    return thumbnails[index % thumbnails.length];
+  };
 
   return searchQueries.map((searchQuery, index) => {
     const encodedQuery = encodeURIComponent(searchQuery);
@@ -416,8 +431,8 @@ async function generateYouTubeLinks(query: string): Promise<{ title: string; url
     return {
       title: formattedTitle,
       url: `https://www.youtube.com/results?search_query=${encodedQuery}`,
-      videoId: '', // No specific video ID since we're linking to search results
-      thumbnail: `https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=320&h=180&fit=crop&auto=format` // Generic YouTube-style thumbnail
+      videoId: `search-${index}`, // Identifier for search results
+      thumbnail: getThumbnail(index)
     };
   });
 }
