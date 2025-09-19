@@ -1,6 +1,7 @@
 import { smartScrapeProducts, generateSmartAIResponse } from './smartScraper';
 import type { ScrapingResult } from './smartScraper';
 import { getEnhancedPriceData, handlePriceQuery } from './realPriceScraper';
+import { searchYouTubeVideos } from './youtubeService';
 
 interface AIResponse {
   howToUse: string[];
@@ -397,10 +398,27 @@ async function generateAIResponseWithPriceContext(query: string, priceData: any)
 }
 
 async function generateYouTubeLinks(query: string): Promise<{ title: string; url: string; videoId: string; thumbnail: string }[]> {
-  // Generate relevant YouTube search links with proper product-specific queries
-  const productName = query.toLowerCase().trim();
+  console.log('🎥 Generating YouTube links using API for:', query);
   
-  // Create more specific and relevant search queries
+  try {
+    // Use the YouTube API service to get real videos
+    const videos = await searchYouTubeVideos(query, 5);
+    
+    if (videos.length > 0) {
+      console.log('✅ Got real YouTube videos from API:', videos.length);
+      return videos.map(video => ({
+        title: video.title,
+        url: video.url,
+        videoId: video.videoId,
+        thumbnail: video.thumbnail
+      }));
+    }
+  } catch (error) {
+    console.error('❌ YouTube API failed, using fallback:', error);
+  }
+  
+  // Fallback to search URLs if API fails
+  console.log('🔄 Using fallback YouTube search links');
   const searchQueries = [
     `${query} review 2024`,
     `${query} unboxing`,
@@ -409,14 +427,13 @@ async function generateYouTubeLinks(query: string): Promise<{ title: string; url
     `${query} comparison`
   ];
 
-  // Generate product-specific thumbnails
   const getThumbnail = (index: number) => {
     const thumbnails = [
-      'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=320&h=180&fit=crop', // YouTube play button
-      'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=320&h=180&fit=crop', // Tech product
-      'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=320&h=180&fit=crop', // Gadget
-      'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=320&h=180&fit=crop', // Device
-      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=320&h=180&fit=crop'  // Product comparison
+      'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=320&h=180&fit=crop',
+      'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=320&h=180&fit=crop',
+      'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=320&h=180&fit=crop',
+      'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=320&h=180&fit=crop',
+      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=320&h=180&fit=crop'
     ];
     return thumbnails[index % thumbnails.length];
   };
@@ -431,7 +448,7 @@ async function generateYouTubeLinks(query: string): Promise<{ title: string; url
     return {
       title: formattedTitle,
       url: `https://www.youtube.com/results?search_query=${encodedQuery}`,
-      videoId: `search-${index}`, // Identifier for search results
+      videoId: `search-${index}`,
       thumbnail: getThumbnail(index)
     };
   });
