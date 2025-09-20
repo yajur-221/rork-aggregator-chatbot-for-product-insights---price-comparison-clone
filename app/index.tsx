@@ -9,20 +9,27 @@ import {
   Platform,
   useWindowDimensions,
 } from 'react-native';
-import { Search, Camera, Image } from 'lucide-react-native';
+import { Search, Camera, Image, Clock } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { Alert } from 'react-native';
+import { useSearchHistory } from '@/hooks/useSearchHistory';
+import SearchHistoryModal from '@/components/SearchHistoryModal';
 
 export default function PriceComparisonHome() {
   const [inputText, setInputText] = useState('');
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const { addSearchQuery } = useSearchHistory();
 
   const handleSend = async () => {
     const query = inputText.trim();
     if (!query) return;
+
+    // Add to search history
+    addSearchQuery(query);
 
     // Navigate to results page with the query
     router.push({
@@ -49,11 +56,15 @@ export default function PriceComparisonHome() {
       });
 
       if (!result.canceled && result.assets[0]) {
+        const query = 'Product from image';
+        // Add to search history
+        addSearchQuery(query);
+        
         // Navigate to results page with image
         router.push({
           pathname: '/results',
           params: { 
-            query: 'Product from image',
+            query,
             imageUri: result.assets[0].uri
           }
         });
@@ -82,11 +93,15 @@ export default function PriceComparisonHome() {
       });
 
       if (!result.canceled && result.assets[0]) {
+        const query = 'Product from image';
+        // Add to search history
+        addSearchQuery(query);
+        
         // Navigate to results page with image
         router.push({
           pathname: '/results',
           params: { 
-            query: 'Product from image',
+            query,
             imageUri: result.assets[0].uri
           }
         });
@@ -155,6 +170,15 @@ export default function PriceComparisonHome() {
       
       <SafeAreaView style={styles.content}>
         <View style={styles.centerContainer}>
+          {/* Search History Button */}
+          <TouchableOpacity 
+            style={styles.historyButton}
+            onPress={() => setShowHistoryModal(true)}
+          >
+            <Clock color="#60a5fa" size={20} />
+            <Text style={styles.historyButtonText}>Search History</Text>
+          </TouchableOpacity>
+
           {/* Main Title */}
           <Text style={styles.mainTitle}>Find the Best Prices</Text>
           <Text style={styles.subtitle}>Compare prices across multiple platforms and save money on every purchase.</Text>
@@ -205,6 +229,21 @@ export default function PriceComparisonHome() {
           </View>
         </View>
       </SafeAreaView>
+      
+      {/* Search History Modal */}
+      <SearchHistoryModal
+        visible={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
+        onSelectSearch={(query) => {
+          setInputText(query);
+          // Auto-search when selecting from history
+          addSearchQuery(query);
+          router.push({
+            pathname: '/results',
+            params: { query }
+          });
+        }}
+      />
     </View>
   );
 }
@@ -336,5 +375,28 @@ const styles = StyleSheet.create({
       WebkitBackdropFilter: 'blur(10px)',
       boxShadow: '0 4px 16px rgba(34, 197, 94, 0.3)',
     }),
+  },
+  historyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: 'rgba(31, 41, 55, 0.4)',
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+    marginBottom: 32,
+    alignSelf: 'center',
+    ...(Platform.OS === 'web' && {
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
+      boxShadow: '0 4px 16px rgba(59, 130, 246, 0.2)',
+    }),
+  },
+  historyButtonText: {
+    color: '#60a5fa',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
