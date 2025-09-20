@@ -23,16 +23,49 @@ interface AIResponse {
 function tryExtractJsonString(input: string): string | null {
   try {
     const trimmed = input.trim();
-    if (trimmed.startsWith('{') && trimmed.endsWith('}')) return trimmed;
+    
+    // Handle empty or invalid input
+    if (!trimmed || trimmed.length < 2) {
+      console.log('Input too short or empty:', trimmed);
+      return null;
+    }
+    
+    // Check if it's already valid JSON
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      try {
+        JSON.parse(trimmed); // Test if it's valid
+        return trimmed;
+      } catch (e) {
+        console.log('Direct JSON parse failed, trying extraction');
+      }
+    }
+    
+    // Try to extract from code blocks
     const codeBlockMatch = trimmed.match(/```(?:json)?([\s\S]*?)```/i);
-    if (codeBlockMatch && codeBlockMatch[1]) return codeBlockMatch[1].trim();
+    if (codeBlockMatch && codeBlockMatch[1]) {
+      const extracted = codeBlockMatch[1].trim();
+      if (extracted.startsWith('{') && extracted.endsWith('}')) {
+        return extracted;
+      }
+    }
+    
+    // Find JSON object boundaries
     const firstBrace = trimmed.indexOf('{');
     const lastBrace = trimmed.lastIndexOf('}');
+    
     if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-      return trimmed.slice(firstBrace, lastBrace + 1);
+      const extracted = trimmed.slice(firstBrace, lastBrace + 1);
+      try {
+        JSON.parse(extracted); // Test if it's valid
+        return extracted;
+      } catch (e) {
+        console.log('Extracted JSON is invalid:', e);
+      }
     }
+    
+    console.log('No valid JSON found in input');
   } catch (e) {
-    console.log('JSON extraction failed', e);
+    console.log('JSON extraction failed:', e);
   }
   return null;
 }
@@ -215,16 +248,42 @@ export async function generateAIResponse(query: string, imageUri?: string): Prom
 
     if (response.ok) {
       console.log('AI API response received successfully');
-      const data = await response.json();
-      const completion: string = String((data as any)?.completion ?? '');
+      let data: any;
+      let completion: string = '';
+      
+      try {
+        const responseText = await response.text();
+        console.log('Raw response (first 200 chars):', responseText.slice(0, 200));
+        
+        // Try to parse as JSON
+        try {
+          data = JSON.parse(responseText);
+          completion = String(data?.completion ?? '');
+        } catch (jsonError) {
+          console.log('Response is not valid JSON, treating as plain text');
+          completion = responseText;
+        }
+      } catch (textError) {
+        console.error('Failed to read response text:', textError);
+        throw new Error('Failed to read API response');
+      }
+      
+      if (!completion || completion.trim().length === 0) {
+        console.log('Empty completion received');
+        throw new Error('Empty response from AI API');
+      }
 
       try {
         let jsonString = tryExtractJsonString(completion);
         if (!jsonString) {
           console.log('No direct JSON detected, attempting to strip backticks...');
-          jsonString = completion.replace(/```/g, '').trim();
+          const stripped = completion.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
+          jsonString = tryExtractJsonString(stripped);
         }
-        if (!jsonString) throw new Error('No JSON content found in completion');
+        if (!jsonString) {
+          console.log('No JSON found, completion content:', completion.slice(0, 500));
+          throw new Error('No JSON content found in completion');
+        }
 
         jsonString = sanitizeJsonString(jsonString);
         jsonString = balanceJsonBrackets(jsonString);

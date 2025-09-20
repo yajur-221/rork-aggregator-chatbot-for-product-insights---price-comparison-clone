@@ -86,7 +86,15 @@ export async function searchYouTubeVideos(query: string, maxResults: number = 5)
           continue;
         }
         
-        const data: YouTubeSearchResponse = await response.json();
+        let data: YouTubeSearchResponse;
+        try {
+          const responseText = await response.text();
+          console.log('YouTube API response (first 200 chars):', responseText.slice(0, 200));
+          data = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('Failed to parse YouTube API response:', parseError);
+          continue;
+        }
         
         if (!data.items || data.items.length === 0) {
           console.log('No videos found for query:', searchQuery);
@@ -106,7 +114,13 @@ export async function searchYouTubeVideos(query: string, maxResults: number = 5)
           
           const detailsResponse = await fetch(detailsUrl);
           if (detailsResponse.ok) {
-            videoDetails = await detailsResponse.json();
+            try {
+              const detailsText = await detailsResponse.text();
+              videoDetails = JSON.parse(detailsText);
+            } catch (detailsParseError) {
+              console.log('Failed to parse video details:', detailsParseError);
+              videoDetails = null;
+            }
           }
         } catch (error) {
           console.log('Could not fetch video details:', error);

@@ -372,7 +372,16 @@ async function callBackendScraper(productName: string): Promise<BackendScrapingR
     });
 
     if (response.ok) {
-      const data = await response.json();
+      let data: BackendScrapingResponse;
+      try {
+        const responseText = await response.text();
+        console.log('Backend scraper response (first 200 chars):', responseText.slice(0, 200));
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.log('❌ Failed to parse backend scraper response:', parseError);
+        return null;
+      }
+      
       console.log('✅ Backend scraper response:', {
         success: data.success,
         productsFound: data.products?.length || 0,
@@ -417,7 +426,16 @@ async function callBackendQueryEndpoint(productName: string): Promise<BackendScr
     });
 
     if (response.ok) {
-      const data = await response.json();
+      let data: any;
+      try {
+        const responseText = await response.text();
+        console.log('Backend query response (first 200 chars):', responseText.slice(0, 200));
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.log('❌ Failed to parse backend query response:', parseError);
+        return null;
+      }
+      
       console.log('✅ Backend query response:', {
         success: data.success,
         productsFound: data.products?.length || 0
