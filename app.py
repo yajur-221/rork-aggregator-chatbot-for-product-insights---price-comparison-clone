@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-Standalone Price Scraper Backend for Railway
-This is a complete, self-contained version that doesn't need imports
+Fixed Price Scraper Backend for Railway with Root Route
 """
 
 import os
@@ -13,6 +12,7 @@ import time
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
+# Create Flask app
 app = Flask(__name__)
 CORS(app)  # Enable CORS for React Native
 
@@ -63,200 +63,27 @@ def get_estimated_price(product_name):
     # Default
     return 1000.0
 
-def extract_product_from_prompt(user_input):
-    """Extract product name from user's natural language input"""
-    text = user_input.lower()
-    
-    # Remove common query words
-    remove_words = [
-        'find', 'search', 'get', 'show', 'tell', 'what', 'whats', "what's",
-        'price', 'cost', 'cheap', 'cheapest', 'best', 'lowest', 'for',
-        'of', 'the', 'me', 'a', 'an', 'is', 'are', 'please', 'can', 'you',
-        'i', 'want', 'need', 'looking', 'buy', 'purchase', 'deal', 'on'
-    ]
-    
-    words = text.split()
-    product_words = [w for w in words if w not in remove_words]
-    product = ' '.join(product_words).strip()
-    
-    # If too short, try simpler approach
-    if len(product) < 3 and len(words) > 2:
-        patterns = [
-            r'price of (.+)',
-            r'price for (.+)',
-            r'search for (.+)',
-            r'find (.+)',
-            r'cheapest (.+)',
-            r'best price on (.+)',
-            r'cost of (.+)',
-            r'buy (.+)',
-            r'looking for (.+)'
-        ]
-        
-        for pattern in patterns:
-            match = re.search(pattern, text)
-            if match:
-                product = match.group(1).strip()
-                break
-    
-    return product if product else None
+# ===== FLASK ROUTES =====
 
-# ===== SCRAPING FUNCTIONS =====
+@app.route('/')
+def home():
+    """Root endpoint"""
+    return jsonify({
+        'status': 'active',
+        'service': 'Price Scraper Backend',
+        'version': '1.0.0',
+        'endpoints': {
+            'health': '/health',
+            'scrape_prices': '/scrape/prices/',
+            'query_price': '/query/price/'
+        },
+        'message': '🚀 Price Scraper is running! Use POST /scrape/prices/ with {"product_name": "..."}'
+    })
 
-def scrape_prices(product_name):
-    """Scrape prices from multiple e-commerce sites"""
-    results = []
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate',
-        'Connection': 'keep-alive',
-    }
-    
-    product_name = product_name.strip()
-    
-    # --- AMAZON ---
-    try:
-        url = f"https://www.amazon.in/s?k={product_name.replace(' ', '+')}"
-        response = requests.get(url, headers=headers, timeout=8)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        items = soup.find_all('div', {'data-component-type': 's-search-result'})[:5]
-        for item in items:
-            try:
-                title = item.find('h2').text.strip()[:100] if item.find('h2') else ""
-                price_elem = item.find('span', class_='a-price-whole')
-                if price_elem:
-                    price = clean_price(price_elem.text)
-                    link = item.find('h2').find('a')['href'] if item.find('h2') else ""
-                    if link and not link.startswith('http'):
-                        link = 'https://www.amazon.in' + link
-                    
-                    results.append({
-                        'price': price,
-                        'title': title,
-                        'platform': 'Amazon',
-                        'url': link
-                    })
-            except:
-                continue
-    except Exception as e:
-        print(f"Amazon error: {e}")
-    
-    # --- FLIPKART ---
-    try:
-        url = f"https://www.flipkart.com/search?q={product_name.replace(' ', '%20')}"
-        response = requests.get(url, headers=headers, timeout=8)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        price_elements = soup.find_all('div', class_='_30jeq3')[:5]
-        for price_elem in price_elements:
-            try:
-                price = clean_price(price_elem.text)
-                parent = price_elem.find_parent('div', class_='_1AtVbE')
-                if parent:
-                    title_elem = parent.find('div', class_='_4rR01T') or parent.find('a', class_='s1Q9rs')
-                    title = title_elem.text.strip()[:100] if title_elem else "Product"
-                    
-                    results.append({
-                        'price': price,
-                        'title': title,
-                        'platform': 'Flipkart',
-                        'url': url
-                    })
-            except:
-                continue
-    except Exception as e:
-        print(f"Flipkart error: {e}")
-    
-    # --- SNAPDEAL (Optional) ---
-    try:
-        url = f"https://www.snapdeal.com/search?keyword={product_name.replace(' ', '%20')}"
-        response = requests.get(url, headers=headers, timeout=8)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        items = soup.find_all('div', class_='product-tuple-listing')[:3]
-        for item in items:
-            try:
-                title = item.find('p', class_='product-title').text.strip()[:100]
-                price_text = item.find('span', class_='product-price').text
-                price = clean_price(price_text)
-                
-                results.append({
-                    'price': price,
-                    'title': title,
-                    'platform': 'Snapdeal',
-                    'url': url
-                })
-            except:
-                continue
-    except:
-        pass  # Snapdeal is optional
-    
-    # Remove duplicates and sort by price
-    seen_prices = set()
-    unique_results = []
-    
-    for item in results:
-        price_key = (item['platform'], item['price'])
-        if price_key not in seen_prices and item['price'] > 0:
-            seen_prices.add(price_key)
-            unique_results.append(item)
-    
-    return sorted(unique_results, key=lambda x: x['price'])
-
-def handle_price_query(user_input):
-    """Handle natural language price queries"""
-    product = extract_product_from_prompt(user_input)
-    
-    if not product:
-        return {
-            'success': False,
-            'message': "I couldn't understand what product you're looking for. Please specify the product name.",
-            'data': None
-        }
-    
-    print(f"🔍 Searching for: {product}")
-    prices = scrape_prices(product)
-    
-    if not prices:
-        return {
-            'success': False,
-            'message': f"Sorry, I couldn't find prices for '{product}'. Try being more specific or check if the product name is correct.",
-            'data': None
-        }
-    
-    prices.sort(key=lambda x: x['price'])
-    cheapest = prices[0]
-    
-    message = f"""✅ Found best prices for **{product}**!
-
-🏆 **CHEAPEST OPTION:**
-• Product: {cheapest['title']}
-• Price: **₹{cheapest['price']:,.0f}**
-• Platform: {cheapest['platform']}
-• [View Product]({cheapest['url']})
-
-📊 **PRICE COMPARISON:**"""
-    
-    for i, item in enumerate(prices[:5], 1):
-        message += f"\n{i}. {item['platform']}: ₹{item['price']:,.0f}"
-    
-    return {
-        'success': True,
-        'message': message,
-        'products': prices[:10],
-        'product_searched': product,
-        'total_results': len(prices),
-        'cheapest': cheapest
-    }
-
-# ===== FLASK API ENDPOINTS =====
-
-@app.route('/health', methods=['GET'])
+@app.route('/health')
+@app.route('/health/')
 def health_check():
-    """Health check endpoint"""
+    """Health check endpoint - works with or without trailing slash"""
     return jsonify({
         'status': 'healthy',
         'timestamp': time.time(),
@@ -264,115 +91,220 @@ def health_check():
     })
 
 @app.route('/scrape/prices/', methods=['POST'])
+@app.route('/scrape/prices', methods=['POST'])
 def scrape_prices_endpoint():
-    """Main scraping endpoint for React Native app"""
+    """Main scraping endpoint"""
     try:
-        data = request.get_json()
+        # Get JSON data
+        data = request.get_json() or {}
         
-        if not data or 'product_name' not in data:
+        # Check for product_name
+        product_name = data.get('product_name', '').strip()
+        
+        if not product_name:
             return jsonify({
                 'success': False,
-                'error': 'Missing product_name in request'
-            }), 400
-        
-        product_name = data['product_name']
-        
-        # Validate input
-        if not product_name or len(product_name.strip()) == 0:
-            return jsonify({
-                'success': False,
-                'error': 'Product name cannot be empty'
+                'error': 'Missing product_name in request',
+                'example': 'Send POST with {"product_name": "iPhone 15"}'
             }), 400
         
         if len(product_name) > 100:
             return jsonify({
                 'success': False,
-                'error': 'Product name too long'
+                'error': 'Product name too long (max 100 characters)'
             }), 400
         
-        print(f"Scraping request for: {product_name}")
+        print(f"📱 Scraping request for: {product_name}")
         
-        # Scrape prices
+        # Try to scrape real prices
         prices = scrape_prices(product_name)
         
+        # If no real prices found, use mock data
         if not prices:
-            # Return mock data as fallback
+            print(f"⚠️ No real prices found, using mock data for: {product_name}")
             base_price = get_estimated_price(product_name)
-            mock_prices = [
-                {
-                    'price': base_price,
-                    'title': f"{product_name} - Amazon Exclusive",
-                    'platform': 'Amazon',
-                    'url': f"https://www.amazon.in/s?k={product_name.replace(' ', '+')}"
-                },
-                {
-                    'price': base_price * 0.95,
-                    'title': f"{product_name} - Flipkart Deal",
-                    'platform': 'Flipkart',
-                    'url': f"https://www.flipkart.com/search?q={product_name.replace(' ', '%20')}"
-                },
-                {
-                    'price': base_price * 1.05,
-                    'title': f"{product_name} - Available",
-                    'platform': 'Snapdeal',
-                    'url': f"https://www.snapdeal.com/search?keyword={product_name.replace(' ', '%20')}"
-                }
-            ]
-            prices = sorted(mock_prices, key=lambda x: x['price'])
+            prices = generate_mock_prices(product_name, base_price)
+        
+        # Sort by price
+        prices.sort(key=lambda x: x['price'])
         
         return jsonify({
             'success': True,
             'products': prices,
             'product_searched': product_name,
             'total_results': len(prices),
-            'cheapest': prices[0] if prices else None
+            'cheapest': prices[0] if prices else None,
+            'timestamp': time.time()
         })
         
     except Exception as e:
-        print(f"Error in scrape_prices_endpoint: {e}")
+        print(f"❌ Error in scrape_prices_endpoint: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
 
 @app.route('/query/price/', methods=['POST'])
-def handle_price_query_endpoint():
-    """Handle natural language price queries"""
+@app.route('/query/price', methods=['POST'])
+def query_price_endpoint():
+    """Natural language price query endpoint"""
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
+        query = data.get('query', '').strip()
         
-        if not data or 'query' not in data:
+        if not query:
             return jsonify({
                 'success': False,
                 'error': 'Missing query in request'
             }), 400
         
-        user_query = data['query']
+        # Extract product from natural language
+        product = extract_product_from_query(query)
         
-        if not user_query or len(user_query.strip()) == 0:
+        if not product:
             return jsonify({
                 'success': False,
-                'error': 'Query cannot be empty'
-            }), 400
+                'message': "Couldn't understand the product. Try 'iPhone 15' or 'Samsung TV'"
+            })
         
-        print(f"Price query: {user_query}")
-        result = handle_price_query(user_query)
+        # Use the scrape endpoint logic
+        prices = scrape_prices(product)
+        if not prices:
+            base_price = get_estimated_price(product)
+            prices = generate_mock_prices(product, base_price)
         
-        return jsonify(result)
+        prices.sort(key=lambda x: x['price'])
+        
+        return jsonify({
+            'success': True,
+            'products': prices,
+            'product_searched': product,
+            'total_results': len(prices),
+            'cheapest': prices[0] if prices else None
+        })
         
     except Exception as e:
-        print(f"Error in handle_price_query_endpoint: {e}")
+        print(f"❌ Error in query_price: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
 
-# Railway/Gunicorn entry point
+# ===== SCRAPING FUNCTIONS =====
+
+def scrape_prices(product_name):
+    """Scrape real prices from e-commerce sites"""
+    results = []
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+    }
+    
+    # Try Amazon
+    try:
+        print(f"🔍 Scraping Amazon for: {product_name}")
+        url = f"https://www.amazon.in/s?k={product_name.replace(' ', '+')}"
+        response = requests.get(url, headers=headers, timeout=5)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        items = soup.find_all('div', {'data-component-type': 's-search-result'})[:3]
+        for item in items:
+            try:
+                title = item.find('h2').text.strip()[:100] if item.find('h2') else product_name
+                price_elem = item.find('span', class_='a-price-whole')
+                if price_elem:
+                    price = clean_price(price_elem.text)
+                    if price > 0:
+                        results.append({
+                            'price': price,
+                            'title': title,
+                            'platform': 'Amazon',
+                            'url': url
+                        })
+            except:
+                continue
+        print(f"✅ Amazon: Found {len([r for r in results if r['platform'] == 'Amazon'])} products")
+    except Exception as e:
+        print(f"⚠️ Amazon scraping failed: {e}")
+    
+    # Try Flipkart
+    try:
+        print(f"🔍 Scraping Flipkart for: {product_name}")
+        url = f"https://www.flipkart.com/search?q={product_name.replace(' ', '%20')}"
+        response = requests.get(url, headers=headers, timeout=5)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        price_elements = soup.find_all('div', class_='_30jeq3')[:3]
+        for price_elem in price_elements:
+            try:
+                price = clean_price(price_elem.text)
+                if price > 0:
+                    results.append({
+                        'price': price,
+                        'title': f"{product_name} - Flipkart",
+                        'platform': 'Flipkart',
+                        'url': url
+                    })
+            except:
+                continue
+        print(f"✅ Flipkart: Found {len([r for r in results if r['platform'] == 'Flipkart'])} products")
+    except Exception as e:
+        print(f"⚠️ Flipkart scraping failed: {e}")
+    
+    return results
+
+def generate_mock_prices(product_name, base_price):
+    """Generate realistic mock prices as fallback"""
+    return [
+        {
+            'price': base_price,
+            'title': f"{product_name} - Amazon Exclusive",
+            'platform': 'Amazon',
+            'url': f"https://www.amazon.in/s?k={product_name.replace(' ', '+')}"
+        },
+        {
+            'price': base_price * 0.95,
+            'title': f"{product_name} - Flipkart Deal",
+            'platform': 'Flipkart',
+            'url': f"https://www.flipkart.com/search?q={product_name.replace(' ', '%20')}"
+        },
+        {
+            'price': base_price * 1.05,
+            'title': f"{product_name} - Croma Store",
+            'platform': 'Croma',
+            'url': f"https://www.croma.com/search?q={product_name.replace(' ', '%20')}"
+        }
+    ]
+
+def extract_product_from_query(query):
+    """Extract product name from natural language"""
+    query = query.lower()
+    
+    # Remove common words
+    remove_words = ['find', 'search', 'get', 'show', 'price', 'cost', 'cheap', 'cheapest', 
+                   'best', 'for', 'of', 'the', 'a', 'an', 'is', 'what', 'whats']
+    
+    words = query.split()
+    product_words = [w for w in words if w not in remove_words]
+    
+    return ' '.join(product_words).strip() if product_words else None
+
+# ===== MAIN ENTRY POINT =====
+
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    print(f"🚀 Starting Price Scraper Backend on port {port}")
-    print(f"📋 Available endpoints:")
-    print(f"  GET  /health - Health check")
-    print(f"  POST /scrape/prices/ - Scrape prices")
-    print(f"  POST /query/price/ - Natural language queries")
+    port = int(os.environ.get('PORT', 8080))
+    print(f"""
+    🚀 Price Scraper Backend Starting...
+    📍 Port: {port}
+    📋 Endpoints:
+       GET  / - Service info
+       GET  /health - Health check
+       POST /scrape/prices/ - Scrape prices
+       POST /query/price/ - Natural language queries
+    
+    Test with: curl http://localhost:{port}/health
+    """)
+    
+    # Run the app
     app.run(host='0.0.0.0', port=port, debug=False)
