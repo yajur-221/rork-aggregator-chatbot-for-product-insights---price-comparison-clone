@@ -159,53 +159,28 @@ async function scrapeRealPrices(platform: string, query: string): Promise<Produc
 }
 
 /**
- * Call backend scraping service
+ * Call backend scraping service using tRPC
  */
 async function callBackendScraper(platform: string, query: string): Promise<ProductResult[]> {
-  const backendUrl = process.env.EXPO_PUBLIC_SCRAPER_BACKEND_URL || 'https://rork-aggregator-chatbot-for-product-insights-p-production.up.railway.app';
-  
   try {
-    console.log(`🌐 Calling backend scraper: ${backendUrl}/scrape`);
+    console.log(`🌐 Calling tRPC backend scraper for ${platform}`);
     
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    // Import trpcClient dynamically to avoid circular dependencies
+    const { trpcClient } = await import('@/lib/trpc');
     
-    const response = await fetch(`${backendUrl}/scrape`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'User-Agent': 'PriceWise-App/1.0',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify({
-        query,
-        platforms: [platform]
-      }),
-      signal: controller.signal
+    const response = await trpcClient.scraper.scrape.query({
+      query: query.trim(),
+      platforms: [platform]
     });
     
-    clearTimeout(timeoutId);
+    console.log(`📦 tRPC response:`, { success: response.success, productCount: response.products?.length || 0 });
     
-    console.log(`📡 Backend response status: ${response.status}`);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    if (!response.success) {
+      throw new Error(response.errors?.join(', ') || 'Backend scraping failed');
     }
     
-    const data = await response.json();
-    console.log(`📦 Backend response data:`, { success: data.success, productCount: data.products?.length || 0 });
-    
-    if (!data.success) {
-      throw new Error(data.error || 'Backend scraping failed');
-    }
-    
-    return data.products || [];
+    return response.products || [];
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      console.error(`Backend scraper timeout for ${platform}`);
-      throw new Error('Request timeout');
-    }
     console.error(`Backend scraper error for ${platform}:`, error);
     throw error;
   }

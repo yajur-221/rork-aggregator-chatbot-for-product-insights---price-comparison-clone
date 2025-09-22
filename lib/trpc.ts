@@ -10,12 +10,17 @@ const getBaseUrl = () => {
     return process.env.EXPO_PUBLIC_RORK_API_BASE_URL;
   }
 
+  // Fallback for development
+  if (process.env.NODE_ENV === 'development') {
+    return 'http://localhost:3000';
+  }
+
   throw new Error(
     "No base url found, please set EXPO_PUBLIC_RORK_API_BASE_URL"
   );
 };
 
-export const trpcClient = trpc.createClient({
+const trpcClientInstance = trpc.createClient({
   links: [
     httpLink({
       url: `${getBaseUrl()}/api/trpc`,
@@ -23,3 +28,5 @@ export const trpcClient = trpc.createClient({
     }),
   ],
 });
+
+export const trpcClient = trpcClientInstance;
