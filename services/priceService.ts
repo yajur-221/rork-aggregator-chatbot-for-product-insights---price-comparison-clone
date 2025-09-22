@@ -4,6 +4,7 @@ import { categorizeProduct } from './productCategorizer';
 import { handlePriceQuery } from './realPriceScraper';
 import { fetchPricesWithPythonScraper } from './pythonScraper';
 import type { LocationData } from './pythonScraper';
+import { getEnhancedPriceComparison } from './realApiScraper';
 
 // Helper function to generate valid platform links
 function generateValidLink(platformName: string, query: string): string {
@@ -136,7 +137,31 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
     return [];
   }
   
-  // Try Python scraper first (most comprehensive)
+  // Try Real API scraper first (most accurate)
+  try {
+    console.log('🚀 Attempting Real API scraper...');
+    const realApiProducts = await getEnhancedPriceComparison(sanitizedQuery, location);
+    
+    if (realApiProducts.length > 0) {
+      console.log('✅ Real API scraper successful:', {
+        totalProducts: realApiProducts.length,
+        cheapestPrice: `₹${realApiProducts[0]?.price}`,
+        platforms: [...new Set(realApiProducts.map(p => p.source))].join(', ')
+      });
+      
+      // Add local stores if location is available
+      if (location) {
+        const localStores = generateLocalStores(sanitizedQuery, location, realApiProducts[0]?.price || 1000);
+        realApiProducts.push(...localStores);
+      }
+      
+      return realApiProducts.sort((a, b) => a.price - b.price);
+    }
+  } catch (error) {
+    console.log('⚠️ Real API scraper failed, trying Python scraper:', error);
+  }
+  
+  // Try Python scraper as fallback
   try {
     console.log('🐍 Attempting Python scraper...');
     const pythonScrapedProducts = await fetchPricesWithPythonScraper(sanitizedQuery, location);
