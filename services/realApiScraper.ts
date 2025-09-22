@@ -4,7 +4,7 @@
  * Falls back to web scraping when APIs are not available
  */
 
-import { Platform } from 'react-native';
+
 
 interface ProductResult {
   id: string;
@@ -162,30 +162,50 @@ async function scrapeRealPrices(platform: string, query: string): Promise<Produc
  * Call backend scraping service
  */
 async function callBackendScraper(platform: string, query: string): Promise<ProductResult[]> {
-  const backendUrl = process.env.EXPO_PUBLIC_SCRAPER_URL || 'https://api.pricetracker.com';
+  const backendUrl = process.env.EXPO_PUBLIC_SCRAPER_BACKEND_URL || 'https://rork-aggregator-chatbot-for-product-insights-p-production.up.railway.app';
   
   try {
+    console.log(`🌐 Calling backend scraper: ${backendUrl}/scrape`);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    
     const response = await fetch(`${backendUrl}/scrape`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'User-Agent': 'PriceWise-App/1.0',
+        'Accept': 'application/json',
       },
       body: JSON.stringify({
-        platform,
         query,
-        country: 'IN',
-        limit: 10
-      })
+        platforms: [platform]
+      }),
+      signal: controller.signal
     });
     
+    clearTimeout(timeoutId);
+    
+    console.log(`📡 Backend response status: ${response.status}`);
+    
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
     }
     
     const data = await response.json();
+    console.log(`📦 Backend response data:`, { success: data.success, productCount: data.products?.length || 0 });
+    
+    if (!data.success) {
+      throw new Error(data.error || 'Backend scraping failed');
+    }
+    
     return data.products || [];
   } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error(`Backend scraper timeout for ${platform}`);
+      throw new Error('Request timeout');
+    }
     console.error(`Backend scraper error for ${platform}:`, error);
     throw error;
   }
