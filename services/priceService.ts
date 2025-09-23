@@ -137,10 +137,19 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
     return [];
   }
   
-  // Try Real API scraper first (most accurate)
+  // Try Real API scraper first (most accurate) with timeout
   try {
     console.log('🚀 Attempting Real API scraper...');
-    const realApiProducts = await getEnhancedPriceComparison(sanitizedQuery, location);
+    
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Real API scraper timeout')), 8000); // 8 second timeout
+    });
+    
+    const realApiProducts = await Promise.race([
+      getEnhancedPriceComparison(sanitizedQuery, location),
+      timeoutPromise
+    ]);
     
     if (realApiProducts.length > 0) {
       console.log('✅ Real API scraper successful:', {
@@ -158,13 +167,22 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
       return realApiProducts.sort((a, b) => a.price - b.price);
     }
   } catch (error) {
-    console.log('⚠️ Real API scraper failed, trying Python scraper:', error);
+    console.log('⚠️ Real API scraper failed or timed out, trying Python scraper:', error);
   }
   
-  // Try Python scraper as fallback
+  // Try Python scraper as fallback with timeout
   try {
     console.log('🐍 Attempting Python scraper...');
-    const pythonScrapedProducts = await fetchPricesWithPythonScraper(sanitizedQuery, location);
+    
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Python scraper timeout')), 6000); // 6 second timeout
+    });
+    
+    const pythonScrapedProducts = await Promise.race([
+      fetchPricesWithPythonScraper(sanitizedQuery, location),
+      timeoutPromise
+    ]);
     
     if (pythonScrapedProducts.length > 0) {
       console.log('✅ Python scraper successful:', {
@@ -199,13 +217,22 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
       return pythonItems.sort((a, b) => a.price - b.price);
     }
   } catch (error) {
-    console.log('⚠️ Python scraper failed, trying real price scraping:', error);
+    console.log('⚠️ Python scraper failed or timed out, trying real price scraping:', error);
   }
   
-  // Try real price scraping as fallback
+  // Try real price scraping as fallback with timeout
   try {
     console.log('🌐 Attempting real price scraping...');
-    const realPriceResult = await handlePriceQuery(sanitizedQuery);
+    
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Real price scraping timeout')), 5000); // 5 second timeout
+    });
+    
+    const realPriceResult = await Promise.race([
+      handlePriceQuery(sanitizedQuery),
+      timeoutPromise
+    ]);
     
     if (realPriceResult.success && realPriceResult.data) {
       console.log('✅ Real price scraping successful:', {
@@ -238,14 +265,24 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
       return realPriceItems.sort((a, b) => a.price - b.price);
     }
   } catch (error) {
-    console.log('⚠️ Real price scraping failed, trying smart scraping:', error);
+    console.log('⚠️ Real price scraping failed or timed out, trying smart scraping:', error);
   }
   
-  // Use smart scraping as fallback
+  // Use smart scraping as fallback with timeout
   let scrapingResult: ScrapingResult | null = null;
   try {
     console.log('🤖 Attempting smart scraping...');
-    scrapingResult = await smartScrapeProducts(sanitizedQuery);
+    
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Smart scraping timeout')), 4000); // 4 second timeout
+    });
+    
+    scrapingResult = await Promise.race([
+      smartScrapeProducts(sanitizedQuery),
+      timeoutPromise
+    ]);
+    
     console.log('📊 Smart scraping result:', {
       success: scrapingResult.success,
       productsFound: scrapingResult.products.length,
@@ -253,7 +290,7 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
       errors: scrapingResult.errors.length
     });
   } catch (error) {
-    console.error('Smart scraping failed, falling back to mock data:', error);
+    console.error('Smart scraping failed or timed out, falling back to mock data:', error);
   }
 
   // If smart scraping was successful, use that data

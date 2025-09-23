@@ -145,21 +145,24 @@ async function scrapeRealPrices(platform: string, query: string): Promise<Produc
   }
   
   try {
-    // Use a backend scraping service for real data
+    // Use a backend scraping service for real data with timeout
     const response = await callBackendScraper(platform, query);
     if (response && response.length > 0) {
+      console.log(`✅ Backend scraping successful for ${platform}: ${response.length} products`);
       return response;
     }
+    console.log(`⚠️ Backend scraping returned no results for ${platform}, using mock data`);
   } catch (error) {
-    console.warn(`Backend scraping failed for ${platform}:`, error);
+    console.warn(`⚠️ Backend scraping failed for ${platform}, using mock data:`, error);
   }
   
   // Fallback to enhanced mock data with realistic pricing
+  console.log(`📊 Generating realistic mock data for ${platform}`);
   return generateRealisticMockData(platform, query);
 }
 
 /**
- * Call backend scraping service using tRPC
+ * Call backend scraping service using tRPC with timeout and error handling
  */
 async function callBackendScraper(platform: string, query: string): Promise<ProductResult[]> {
   try {
@@ -168,10 +171,18 @@ async function callBackendScraper(platform: string, query: string): Promise<Prod
     // Import trpcClient dynamically to avoid circular dependencies
     const { trpcClient } = await import('@/lib/trpc');
     
-    const response = await trpcClient.scraper.scrape.query({
-      query: query.trim(),
-      platforms: [platform]
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Backend request timeout')), 10000); // 10 second timeout
     });
+    
+    const response = await Promise.race([
+      trpcClient.scraper.scrape.query({
+        query: query.trim(),
+        platforms: [platform]
+      }),
+      timeoutPromise
+    ]);
     
     console.log(`📦 tRPC response:`, { success: response.success, productCount: response.products?.length || 0 });
     
@@ -182,7 +193,8 @@ async function callBackendScraper(platform: string, query: string): Promise<Prod
     return response.products || [];
   } catch (error) {
     console.error(`Backend scraper error for ${platform}:`, error);
-    throw error;
+    // Don't throw error, let it fallback to mock data
+    return [];
   }
 }
 
