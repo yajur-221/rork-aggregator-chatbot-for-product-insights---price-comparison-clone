@@ -156,7 +156,7 @@ async function scrapeRealPrices(platform: string, query: string): Promise<Produc
     console.warn(`⚠️ Backend scraping failed for ${platform}, using mock data:`, error);
   }
   
-  // Fallback to enhanced mock data with realistic pricing
+  // Always provide fallback mock data to prevent empty results
   console.log(`📊 Generating realistic mock data for ${platform}`);
   return generateRealisticMockData(platform, query);
 }
@@ -173,7 +173,7 @@ async function callBackendScraper(platform: string, query: string): Promise<Prod
     
     // Add timeout to prevent hanging
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Backend request timeout')), 10000); // 10 second timeout
+      setTimeout(() => reject(new Error('Backend request timeout')), 8000); // 8 second timeout
     });
     
     const response = await Promise.race([
@@ -423,10 +423,19 @@ export async function fetchRealPrices(query: string): Promise<ScrapingResponse> 
   const allProducts: ProductResult[] = [];
   const errors: string[] = [];
   
-  // Scrape platforms in parallel
+  // Scrape platforms with timeout and fallback
   const scrapePromises = platforms.map(async (platform) => {
     try {
-      const products = await scrapeRealPrices(platform, sanitizedQuery);
+      // Add per-platform timeout
+      const platformTimeout = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Platform timeout')), 6000); // 6 second per platform
+      });
+      
+      const products = await Promise.race([
+        scrapeRealPrices(platform, sanitizedQuery),
+        platformTimeout
+      ]);
+      
       allProducts.push(...products);
       console.log(`✅ Successfully scraped ${products.length} products from ${platform}`);
       return { platform, success: true, count: products.length };
@@ -438,7 +447,18 @@ export async function fetchRealPrices(query: string): Promise<ScrapingResponse> 
     }
   });
   
-  await Promise.allSettled(scrapePromises);
+  // Wait for all platforms with overall timeout
+  const overallTimeout = new Promise<void>((resolve) => {
+    setTimeout(() => {
+      console.log('⏰ Overall scraping timeout reached, proceeding with available results');
+      resolve();
+    }, 15000); // 15 second overall timeout
+  });
+  
+  await Promise.race([
+    Promise.allSettled(scrapePromises),
+    overallTimeout
+  ]);
   
   // Sort by price (lowest first)
   allProducts.sort((a, b) => a.price - b.price);

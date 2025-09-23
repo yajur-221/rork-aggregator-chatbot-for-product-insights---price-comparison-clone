@@ -277,18 +277,42 @@ export const scrapeProcedure = publicProcedure
     const allProducts: ProductResult[] = [];
     const errors: string[] = [];
     
-    // Generate products for each platform
-    for (const platform of platforms) {
+    // Generate products for each platform with timeout protection
+    const generatePromises = platforms.map(async (platform) => {
       try {
-        const products = generatePlatformProducts(platform, sanitizedQuery);
+        // Add timeout per platform to prevent hanging
+        const platformTimeout = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Platform generation timeout')), 2000);
+        });
+        
+        const products = await Promise.race([
+          Promise.resolve(generatePlatformProducts(platform, sanitizedQuery)),
+          platformTimeout
+        ]);
+        
         allProducts.push(...products);
         console.log(`✅ Generated ${products.length} products for ${platform}`);
+        return { platform, success: true, count: products.length };
       } catch (error) {
         const errorMessage = `${platform}: ${error instanceof Error ? error.message : 'Unknown error'}`;
         errors.push(errorMessage);
         console.error(`❌ Failed to generate products for ${platform}:`, error);
+        return { platform, success: false, error: errorMessage };
       }
-    }
+    });
+    
+    // Wait for all platforms with overall timeout
+    const overallTimeout = new Promise<void>((resolve) => {
+      setTimeout(() => {
+        console.log('⏰ Overall generation timeout reached, proceeding with available results');
+        resolve();
+      }, 5000); // 5 second overall timeout
+    });
+    
+    await Promise.race([
+      Promise.allSettled(generatePromises),
+      overallTimeout
+    ]);
     
     // Sort by price (lowest first)
     allProducts.sort((a, b) => a.price - b.price);
