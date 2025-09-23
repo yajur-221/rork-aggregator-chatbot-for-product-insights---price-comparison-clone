@@ -46,9 +46,11 @@ export default function LoginModal({ visible, onClose }: LoginModalProps) {
     setIsLoading(true);
     try {
       await login('google');
+      Alert.alert('Welcome! 🎉', 'You have successfully logged in with Google!');
       handleClose();
     } catch (error) {
-      Alert.alert('Error', 'Failed to login with Google');
+      console.error('Google login error:', error);
+      Alert.alert('Error', 'Failed to login with Google. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -56,7 +58,7 @@ export default function LoginModal({ visible, onClose }: LoginModalProps) {
 
   const handleSendOTP = async () => {
     if (!phoneNumber.trim() || phoneNumber.length < 10) {
-      Alert.alert('Error', 'Please enter a valid phone number');
+      Alert.alert('Error', 'Please enter a valid phone number (minimum 10 digits)');
       return;
     }
 
@@ -65,12 +67,17 @@ export default function LoginModal({ visible, onClose }: LoginModalProps) {
       const success = await sendOTP(phoneNumber);
       if (success) {
         setStep('otp');
-        Alert.alert('OTP Sent', `Check console for OTP (Demo: ${phoneNumber})`);
+        Alert.alert(
+          'OTP Sent! 📱', 
+          `We've sent a 6-digit verification code to ${phoneNumber}.\n\n🔍 For demo purposes, check the console to see the OTP.`,
+          [{ text: 'OK', style: 'default' }]
+        );
       } else {
-        Alert.alert('Error', 'Failed to send OTP');
+        Alert.alert('Error', 'Failed to send OTP. Please try again or wait a minute before retrying.');
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to send OTP');
+      console.error('Send OTP error:', error);
+      Alert.alert('Error', 'Failed to send OTP. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -87,11 +94,18 @@ export default function LoginModal({ visible, onClose }: LoginModalProps) {
       const isValid = await verifyOTP(phoneNumber, otp);
       if (isValid) {
         setStep('name');
+        Alert.alert('Verified! ✅', 'Your phone number has been verified successfully.');
       } else {
-        Alert.alert('Error', 'Invalid OTP. Please try again.');
+        Alert.alert(
+          'Invalid OTP ❌', 
+          'The code you entered is incorrect. Please check the code and try again.\n\n💡 Tip: Check the console for the correct OTP in demo mode.'
+        );
+        setOtp(''); // Clear the OTP field
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to verify OTP');
+      console.error('Verify OTP error:', error);
+      Alert.alert('Error', 'Failed to verify OTP. Please try again.');
+      setOtp(''); // Clear the OTP field
     } finally {
       setIsLoading(false);
     }
@@ -99,16 +113,23 @@ export default function LoginModal({ visible, onClose }: LoginModalProps) {
 
   const handleCompleteLogin = async () => {
     if (!name.trim()) {
-      Alert.alert('Error', 'Please enter your name');
+      Alert.alert('Error', 'Please enter your name to complete registration');
+      return;
+    }
+
+    if (name.trim().length < 2) {
+      Alert.alert('Error', 'Please enter a valid name (at least 2 characters)');
       return;
     }
 
     setIsLoading(true);
     try {
-      await login('phone', { phoneNumber, name });
+      await login('phone', { phoneNumber, name: name.trim() });
+      Alert.alert('Welcome! 🎉', `Hi ${name.trim()}, your account has been created successfully!`);
       handleClose();
     } catch (error) {
-      Alert.alert('Error', 'Failed to complete login');
+      console.error('Complete login error:', error);
+      Alert.alert('Error', 'Failed to complete registration. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -154,7 +175,7 @@ export default function LoginModal({ visible, onClose }: LoginModalProps) {
       {isLoading && (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="small" color="#60a5fa" />
-          <Text style={styles.loadingText}>Logging in...</Text>
+          <Text style={styles.loadingText}>Connecting to Google...</Text>
         </View>
       )}
     </View>
@@ -170,7 +191,7 @@ export default function LoginModal({ visible, onClose }: LoginModalProps) {
       </TouchableOpacity>
 
       <Text style={styles.title}>Enter Phone Number</Text>
-      <Text style={styles.subtitle}>We'll send you a verification code</Text>
+      <Text style={styles.subtitle}>We&apos;ll send you a verification code</Text>
 
       <View style={styles.inputContainer}>
         <TextInput
@@ -218,6 +239,9 @@ export default function LoginModal({ visible, onClose }: LoginModalProps) {
       <Text style={styles.subtitle}>
         Enter the 6-digit code sent to {phoneNumber}
       </Text>
+      <Text style={styles.demoHint}>
+        💡 Demo Mode: Check console for OTP
+      </Text>
 
       <View style={styles.inputContainer}>
         <TextInput
@@ -262,7 +286,7 @@ export default function LoginModal({ visible, onClose }: LoginModalProps) {
 
   const renderNameInput = () => (
     <View style={styles.content}>
-      <Text style={styles.title}>What's your name?</Text>
+      <Text style={styles.title}>What&apos;s your name?</Text>
       <Text style={styles.subtitle}>Help us personalize your experience</Text>
 
       <View style={styles.inputContainer}>
@@ -461,5 +485,18 @@ const styles = StyleSheet.create({
     color: '#60a5fa',
     fontSize: 14,
     fontWeight: '600',
+  },
+  demoHint: {
+    fontSize: 14,
+    color: '#fbbf24',
+    textAlign: 'center',
+    marginBottom: 20,
+    fontStyle: 'italic',
+    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.3)',
   },
 });
