@@ -183,7 +183,7 @@ export default function ResultsScreen() {
           setTimeout(() => {
             console.log('⏰ Maximum timeout reached, forcing completion');
             reject(new Error('Maximum loading timeout reached'));
-          }, 30000); // 30 second maximum timeout
+          }, 15000); // 15 second maximum timeout
         });
         
         const dataPromise = (async () => {
