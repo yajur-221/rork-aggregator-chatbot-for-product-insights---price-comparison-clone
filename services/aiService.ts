@@ -122,7 +122,7 @@ export async function generateAIResponse(query: string, imageUri?: string): Prom
     
     // Add timeout to prevent hanging
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('AI service timeout')), 5000); // 5 second timeout
+      setTimeout(() => reject(new Error('AI service timeout')), 12000); // 12 second timeout
     });
 
     const response = await Promise.race([
@@ -335,7 +335,7 @@ export async function generateAIResponseLegacy(query: string, imageUri?: string)
     
     // Add timeout to prevent hanging
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('AI service timeout')), 5000); // 5 second timeout
+      setTimeout(() => reject(new Error('AI service timeout')), 12000); // 12 second timeout
     });
 
     const response = await Promise.race([
@@ -689,7 +689,7 @@ async function analyzeProductImage(imageUri: string, fallbackQuery: string): Pro
     
     // Add timeout to prevent hanging
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Image analysis timeout')), 8000); // 8 second timeout
+      setTimeout(() => reject(new Error('Image analysis timeout')), 20000); // 20 second timeout
     });
 
     const response = await Promise.race([
