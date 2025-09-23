@@ -11,9 +11,9 @@ import {
   Platform,
   useWindowDimensions,
   Animated,
-
+  Dimensions,
 } from 'react-native';
-import { Send, History, ArrowLeft, Sparkles, Search, ShoppingCart, Zap, Globe, MapPin, Brain } from 'lucide-react-native';
+import { Send, Bot, History, ArrowLeft, Sparkles, Search, ShoppingCart, Zap, Globe, MapPin, Brain } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router, useLocalSearchParams } from 'expo-router';
 import { AIInsights } from '@/components/AIInsights';
@@ -62,29 +62,6 @@ export default function ResultsScreen() {
       pathname: '/results',
       params: { query: newQuery }
     });
-  };
-
-  // Generate basic mock data for fallback
-  const generateMockPriceData = (query: string) => {
-    const basePrice = Math.floor(Math.random() * 10000) + 1000;
-    const platforms = ['Amazon', 'Flipkart', 'Snapdeal'];
-    
-    return platforms.map((platform, index) => ({
-      id: `mock-${platform.toLowerCase()}-${index}`,
-      name: `${query} - ${platform} Listing`,
-      price: Math.floor(basePrice * (0.9 + Math.random() * 0.2)),
-      originalPrice: Math.floor(basePrice * (1.1 + Math.random() * 0.2)),
-      image: `https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300&h=300&fit=crop`,
-      source: platform,
-      sourceType: 'online' as const,
-      link: `https://example.com/search?q=${encodeURIComponent(query)}`,
-      stockStatus: 'In Stock',
-      deliveryTime: 'Standard Delivery',
-      rating: 3.5 + Math.random() * 1.5,
-      reviewCount: Math.floor(Math.random() * 1000) + 100,
-      seller: `${platform} Official`,
-      discount: Math.floor(Math.random() * 30) + 5
-    }));
   };
 
 
@@ -201,84 +178,46 @@ export default function ResultsScreen() {
       setProductData(null); // Clear previous data
       
       try {
-        // Add maximum timeout to prevent infinite loading
-        const maxTimeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => {
-            console.log('⏰ Maximum timeout reached, providing fallback data');
-            reject(new Error('Maximum loading timeout reached'));
-          }, 20000); // 20 second maximum timeout
-        });
-        
-        const dataPromise = (async () => {
-          // Request location if not available
-          if (!location) {
-            console.log('Requesting location...');
-            await requestLocation();
-          }
-          
-          if (abortController.signal.aborted) return;
-          
-          console.log('Fetching AI insights and price comparison...');
-          
-          // Use Promise.allSettled to prevent one failure from blocking everything
-          const [aiResult, priceResult] = await Promise.allSettled([
-            imageUri ? generateAIResponse(query as string, imageUri as string) : generateAIResponse(query as string),
-            fetchPriceComparison(query as string, location)
-          ]);
-          
-          const aiInsights = aiResult.status === 'fulfilled' ? aiResult.value : null;
-          const priceComparison = priceResult.status === 'fulfilled' ? priceResult.value : [];
-          
-          if (aiResult.status === 'rejected') {
-            console.warn('AI insights failed:', aiResult.reason);
-          }
-          if (priceResult.status === 'rejected') {
-            console.warn('Price comparison failed:', priceResult.reason);
-          }
-          
-          if (abortController.signal.aborted) return;
-          
-          console.log('AI insights received:', aiInsights ? 'Success' : 'Failed');
-          console.log('AI insights data:', aiInsights);
-          console.log('Price comparison received:', priceComparison ? `${priceComparison.length} items` : 'Failed');
-          console.log('Price comparison data:', priceComparison);
-          
-          return { aiInsights, priceComparison };
-        })();
-        
-        const result = await Promise.race([dataPromise, maxTimeoutPromise]);
-        
-        if (result && !abortController.signal.aborted) {
-          const newProductData = { 
-            aiInsights: result.aiInsights || null, 
-            priceComparison: result.priceComparison || [] 
-          };
-          console.log('Setting product data:', {
-            hasAiInsights: !!newProductData.aiInsights,
-            aiInsightsKeys: newProductData.aiInsights ? Object.keys(newProductData.aiInsights) : [],
-            hasPriceComparison: !!newProductData.priceComparison,
-            priceComparisonLength: newProductData.priceComparison?.length || 0,
-          });
-          setProductData(newProductData);
+        // Request location if not available
+        if (!location) {
+          console.log('Requesting location...');
+          await requestLocation();
         }
+        
+        if (abortController.signal.aborted) return;
+        
+        console.log('Fetching AI insights and price comparison...');
+        const [aiInsights, priceComparison] = await Promise.all([
+          imageUri ? generateAIResponse(query as string, imageUri as string) : generateAIResponse(query as string),
+          fetchPriceComparison(query as string, location)
+        ]);
+        
+        if (abortController.signal.aborted) return;
+        
+        console.log('AI insights received:', aiInsights ? 'Success' : 'Failed');
+        console.log('AI insights data:', aiInsights);
+        console.log('Price comparison received:', priceComparison ? `${priceComparison.length} items` : 'Failed');
+        console.log('Price comparison data:', priceComparison);
+        
+
+        
+        const newProductData = { 
+          aiInsights: aiInsights || null, 
+          priceComparison: priceComparison || [] 
+        };
+        console.log('Setting product data:', {
+          hasAiInsights: !!newProductData.aiInsights,
+          aiInsightsKeys: newProductData.aiInsights ? Object.keys(newProductData.aiInsights) : [],
+          hasPriceComparison: !!newProductData.priceComparison,
+          priceComparisonLength: newProductData.priceComparison?.length || 0,
+
+        });
+        setProductData(newProductData);
       } catch (error) {
         console.error('Error processing request:', error);
-        // Even on error, provide fallback data to prevent infinite loading
-        // Generate some mock data so user isn't stuck
-        const mockPriceData = generateMockPriceData(query as string);
-        setProductData({ 
-          aiInsights: {
-            summary: `We're having trouble connecting to our data sources right now, but here's what we found for "${query}". Please try again in a moment for more comprehensive results.`,
-            keyFeatures: ['Search results may be limited', 'Try refreshing for updated data'],
-            pros: ['Basic price comparison available'],
-            cons: ['Limited data due to connectivity issues'],
-            recommendation: 'Try searching again in a few moments for complete results.'
-          }, 
-          priceComparison: mockPriceData
-        });
+        setProductData(null);
       } finally {
         if (!abortController.signal.aborted) {
-          console.log('🏁 Loading completed, setting isLoading to false');
           setIsLoading(false);
         }
       }
@@ -503,8 +442,8 @@ export default function ResultsScreen() {
             <View style={styles.errorIconContainer}>
               <Search color="#6b7280" size={48} />
             </View>
-            <Text style={styles.errorTitle}>Unable to load results</Text>
-            <Text style={styles.errorSubtitle}>We encountered an issue loading deals for &quot;{query}&quot;</Text>
+            <Text style={styles.errorTitle}>No results found</Text>
+            <Text style={styles.errorSubtitle}>We couldn&apos;t find any deals for &quot;{query}&quot;</Text>
             <Text style={styles.errorHint}>Try searching for:</Text>
             <View style={styles.suggestionContainer}>
               {['iPhone 15', 'Samsung TV', 'Nike shoes', 'Laptop'].map((suggestion, index) => (
@@ -519,12 +458,7 @@ export default function ResultsScreen() {
             </View>
             <TouchableOpacity 
               style={styles.retryButton}
-              onPress={() => {
-                // Reset state and retry
-                setProductData(null);
-                setIsLoading(true);
-                handleSend(query as string);
-              }}
+              onPress={() => handleSend(query as string)}
             >
               <Text style={styles.retryButtonText}>Try Again</Text>
             </TouchableOpacity>

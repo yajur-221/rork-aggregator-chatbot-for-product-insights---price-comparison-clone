@@ -4,8 +4,6 @@ import { categorizeProduct } from './productCategorizer';
 import { handlePriceQuery } from './realPriceScraper';
 import { fetchPricesWithPythonScraper } from './pythonScraper';
 import type { LocationData } from './pythonScraper';
-import { getEnhancedPriceComparison } from './realApiScraper';
-import { trpcClient } from '@/lib/trpc';
 
 // Helper function to generate valid platform links
 function generateValidLink(platformName: string, query: string): string {
@@ -138,65 +136,130 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
     return [];
   }
   
-  // Try tRPC backend scraper first (most accurate) with timeout
+  // Try Python scraper first (most comprehensive)
   try {
-    console.log('🚀 Attempting tRPC backend scraper...');
+    console.log('🐍 Attempting Python scraper...');
+    const pythonScrapedProducts = await fetchPricesWithPythonScraper(sanitizedQuery, location);
     
-    // Add timeout to prevent hanging
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('tRPC backend timeout')), 3000); // 3 second timeout
-    });
-    
-    const backendResponse = await Promise.race([
-      trpcClient.scraper.scrape.query({
-        query: sanitizedQuery,
-        platforms: getRelevantPlatforms(sanitizedQuery)
-      }),
-      timeoutPromise
-    ]);
-    
-    if (backendResponse.success && backendResponse.products.length > 0) {
-      console.log('✅ tRPC backend scraper successful:', {
-        totalProducts: backendResponse.products.length,
-        cheapestPrice: `₹${backendResponse.products[0]?.price}`,
-        platforms: [...new Set(backendResponse.products.map(p => p.platform))].join(', ')
+    if (pythonScrapedProducts.length > 0) {
+      console.log('✅ Python scraper successful:', {
+        totalProducts: pythonScrapedProducts.length,
+        cheapestPrice: pythonScrapedProducts[0]?.formatted_price,
+        platforms: pythonScrapedProducts.map(p => p.platform).join(', ')
       });
       
-      // Convert backend response to UI format
-      const backendProducts: PriceItem[] = backendResponse.products.map((product: any, index: number) => ({
-        id: product.id,
+      // Convert to UI format
+      const pythonItems: PriceItem[] = pythonScrapedProducts.map((product, index) => ({
+        id: `python-${index + 1}`,
         name: product.title,
         price: product.price,
-        originalPrice: product.originalPrice,
+        originalPrice: undefined,
         image: product.image,
         source: product.platform,
+        sourceType: product.location_based ? 'local' : 'online',
+        link: product.link && product.link !== 'https://example.com/search?q=iphone%2015' && !product.link.includes('example.com') ? product.link : generateValidLink(product.platform, sanitizedQuery),
+        stockStatus: 'In Stock',
+        deliveryTime: product.delivery,
+        rating: parseFloat(product.rating || '4.0'),
+        reviewCount: Math.floor(Math.random() * 1000) + 100
+      }));
+      
+      // Add local stores if location is available and we don't have location-based results
+      const hasLocationBasedResults = pythonScrapedProducts.some(p => p.location_based);
+      if (location && !hasLocationBasedResults) {
+        const localStores = generateLocalStores(sanitizedQuery, location, pythonItems[0]?.price || 1000);
+        pythonItems.push(...localStores);
+      }
+      
+      return pythonItems.sort((a, b) => a.price - b.price);
+    }
+  } catch (error) {
+    console.log('⚠️ Python scraper failed, trying real price scraping:', error);
+  }
+  
+  // Try real price scraping as fallback
+  try {
+    console.log('🌐 Attempting real price scraping...');
+    const realPriceResult = await handlePriceQuery(sanitizedQuery);
+    
+    if (realPriceResult.success && realPriceResult.data) {
+      console.log('✅ Real price scraping successful:', {
+        product: realPriceResult.data.product_searched,
+        totalResults: realPriceResult.data.total_results,
+        cheapestPrice: realPriceResult.data.cheapest.price
+      });
+      
+      const realPriceItems: PriceItem[] = realPriceResult.data.all_prices.map((item: any, index: number) => ({
+        id: `real-${index + 1}`,
+        name: item.title || `${sanitizedQuery} - ${item.platform}`,
+        price: item.price,
+        originalPrice: undefined,
+        image: `https://images.unsplash.com/photo-${['1511707171634-5f897ff02aa9', '1560472354-b33ff0c44a43', '1526170375885-4d8ecf77b99f'][index % 3]}?w=200&h=200&fit=crop`,
+        source: item.platform,
         sourceType: 'online' as const,
-        link: product.url,
-        stockStatus: product.availability || 'In Stock',
-        deliveryTime: product.delivery || '2-3 days',
-        rating: product.rating || Math.round((Math.random() * 1.5 + 3.5) * 10) / 10,
-        reviewCount: product.reviews || Math.floor(Math.random() * 1000) + 100,
-        seller: product.seller,
-        discount: product.discount
+        link: item.url && !item.url.includes('example.com') ? item.url : generateValidLink(item.platform, sanitizedQuery),
+        stockStatus: 'In Stock',
+        deliveryTime: '2-3 days',
+        rating: Math.round((Math.random() * 1.5 + 3.5) * 10) / 10,
+        reviewCount: Math.floor(Math.random() * 5000) + 100
       }));
       
       // Add local stores if location is available
-      if (location) {
-        const localStores = generateLocalStores(sanitizedQuery, location, backendProducts[0]?.price || 1000);
-        backendProducts.push(...localStores);
+      if (location && realPriceItems.length > 0) {
+        const localStores = generateLocalStores(sanitizedQuery, location, realPriceItems[0].price);
+        realPriceItems.push(...localStores);
       }
       
-      return backendProducts.sort((a, b) => a.price - b.price);
+      return realPriceItems.sort((a, b) => a.price - b.price);
     }
   } catch (error) {
-    console.log('⚠️ tRPC backend scraper failed or timed out, using fallback data:', error);
+    console.log('⚠️ Real price scraping failed, trying smart scraping:', error);
   }
   
-  // Skip other scrapers for now and go directly to reliable mock data
-  console.log('⚡ Using fast mock data generation for immediate results');
+  // Use smart scraping as fallback
+  let scrapingResult: ScrapingResult | null = null;
+  try {
+    console.log('🤖 Attempting smart scraping...');
+    scrapingResult = await smartScrapeProducts(sanitizedQuery);
+    console.log('📊 Smart scraping result:', {
+      success: scrapingResult.success,
+      productsFound: scrapingResult.products.length,
+      sitesScraped: scrapingResult.scrapedSites.length,
+      errors: scrapingResult.errors.length
+    });
+  } catch (error) {
+    console.error('Smart scraping failed, falling back to mock data:', error);
+  }
+
+  // If smart scraping was successful, use that data
+  if (scrapingResult?.success && scrapingResult.products.length > 0) {
+    console.log('✅ Using smart scraping data');
+    const scrapedItems: PriceItem[] = scrapingResult.products.map((product: any) => ({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      originalPrice: product.originalPrice,
+      image: product.image,
+      source: product.source,
+      sourceType: product.sourceType,
+      link: product.link,
+      stockStatus: product.availability || 'In Stock',
+      deliveryTime: product.deliveryTime || '2-3 days',
+      rating: product.rating || Math.round((Math.random() * 1.5 + 3.5) * 10) / 10,
+      reviewCount: Math.floor(Math.random() * 5000) + 100
+    }));
+    
+    // Add local stores if location is available
+    if (location) {
+      const localStores = generateLocalStores(sanitizedQuery, location, scrapingResult.products[0]?.price || 1000);
+      scrapedItems.push(...localStores);
+    }
+    
+    return scrapedItems.sort((a, b) => a.price - b.price);
+  }
   
-  // Generate enhanced mock data with realistic pricing
-  console.log('📊 Generating enhanced mock data with realistic pricing');
+  // Fallback to enhanced mock data
+  console.log('⚠️ Using fallback mock data');
   const productName = sanitizedQuery.toLowerCase();
   const category = categorizeProduct(sanitizedQuery);
   let basePrice = 25000; // Default base price
@@ -226,7 +289,6 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
   }
 
   console.log('💰 Base price determined:', basePrice);
-  console.log('⏱️ Generating results quickly to prevent loading timeout...');
   
   // Get category-specific stores or use general e-commerce sites
   const categoryStores = category?.sites || [];
@@ -382,50 +444,15 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
 
   // Add timestamp to simulate real-time data
   const timestamp = new Date().toISOString();
-  console.log('✅ Price comparison completed successfully at:', timestamp);
-  console.log('📦 Total items found:', mockData.length);
+  console.log('Price comparison completed at:', timestamp);
+  console.log('Total items found:', mockData.length);
   
   // Return sorted by price (lowest first) with real-time timestamp
   const sortedData = mockData.sort((a, b) => a.price - b.price);
   
   // Add some metadata to simulate real scraping
-  if (sortedData.length > 0) {
-    console.log('💰 Price range: ₹' + sortedData[0]?.price + ' - ₹' + sortedData[sortedData.length - 1]?.price);
-    console.log('📊 Average price: ₹' + Math.round(sortedData.reduce((sum, item) => sum + item.price, 0) / sortedData.length));
-    console.log('🏆 Best deal: ' + sortedData[0]?.name + ' at ₹' + sortedData[0]?.price + ' from ' + sortedData[0]?.source);
-  }
+  console.log('Price range: ₹' + sortedData[0]?.price + ' - ₹' + sortedData[sortedData.length - 1]?.price);
+  console.log('Average price: ₹' + Math.round(sortedData.reduce((sum, item) => sum + item.price, 0) / sortedData.length));
   
   return sortedData;
-}
-
-/**
- * Get relevant platforms based on product category
- */
-function getRelevantPlatforms(query: string): string[] {
-  const queryLower = query.toLowerCase();
-  
-  // Electronics
-  if (queryLower.includes('phone') || queryLower.includes('laptop') ||
-      queryLower.includes('tv') || queryLower.includes('camera') ||
-      queryLower.includes('headphones') || queryLower.includes('electronics')) {
-    return ['amazon', 'flipkart', 'croma', 'snapdeal'];
-  }
-  
-  // Fashion items
-  if (queryLower.includes('shirt') || queryLower.includes('jeans') ||
-      queryLower.includes('dress') || queryLower.includes('shoes') ||
-      queryLower.includes('clothing') || queryLower.includes('fashion')) {
-    return ['amazon', 'flipkart', 'snapdeal'];
-  }
-  
-  // Groceries
-  if (queryLower.includes('milk') || queryLower.includes('bread') ||
-      queryLower.includes('rice') || queryLower.includes('dal') ||
-      queryLower.includes('oil') || queryLower.includes('grocery') ||
-      queryLower.includes('almonds') || queryLower.includes('nuts')) {
-    return ['amazon', 'flipkart', 'snapdeal'];
-  }
-  
-  // Default to major platforms
-  return ['amazon', 'flipkart', 'snapdeal'];
 }
