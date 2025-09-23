@@ -277,23 +277,18 @@ export const scrapeProcedure = publicProcedure
     const allProducts: ProductResult[] = [];
     const errors: string[] = [];
     
-    // Generate products for each platform with immediate execution
-    const generatePromises = platforms.map(async (platform) => {
+    // Generate products for each platform synchronously for speed
+    for (const platform of platforms) {
       try {
         const products = generatePlatformProducts(platform, sanitizedQuery);
         allProducts.push(...products);
         console.log(`✅ Generated ${products.length} products for ${platform}`);
-        return { platform, success: true, count: products.length };
       } catch (error) {
         const errorMessage = `${platform}: ${error instanceof Error ? error.message : 'Unknown error'}`;
         errors.push(errorMessage);
         console.error(`❌ Failed to generate products for ${platform}:`, error);
-        return { platform, success: false, error: errorMessage };
       }
-    });
-    
-    // Execute all platform generation immediately
-    await Promise.allSettled(generatePromises);
+    }
     
     // Sort by price (lowest first)
     allProducts.sort((a, b) => a.price - b.price);

@@ -144,7 +144,7 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
     
     // Add timeout to prevent hanging
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('tRPC backend timeout')), 5000); // 5 second timeout
+      setTimeout(() => reject(new Error('tRPC backend timeout')), 3000); // 3 second timeout
     });
     
     const backendResponse = await Promise.race([
@@ -189,7 +189,7 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
       return backendProducts.sort((a, b) => a.price - b.price);
     }
   } catch (error) {
-    console.log('⚠️ tRPC backend scraper failed or timed out, skipping to fallback:', error);
+    console.log('⚠️ tRPC backend scraper failed or timed out, using fallback data:', error);
   }
   
   // Skip other scrapers for now and go directly to reliable mock data
