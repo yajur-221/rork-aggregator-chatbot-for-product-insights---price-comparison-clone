@@ -5,14 +5,19 @@ import { searchYouTubeVideos } from './youtubeService';
 import * as FileSystem from 'expo-file-system';
 
 interface AIResponse {
-  howToUse: string[];
-  tips: string[];
-  pros: string[];
-  cons: string[];
-  youtubeLinks: { title: string; url: string; videoId: string; thumbnail: string }[];
-  generalInsights: string;
+  summary?: string;
+  keyFeatures?: string[];
+  pros?: string[];
+  cons?: string[];
+  recommendation?: string;
+  priceRange?: string;
+  bestTime?: string;
+  alternatives?: string[];
+  howToUse?: string[];
+  tips?: string[];
+  youtubeLinks?: { title: string; url: string; videoId: string; thumbnail: string }[];
+  generalInsights?: string;
   specifications?: Record<string, string>;
-  alternatives?: { name: string; price: string; reason: string }[];
   faqs?: { question: string; answer: string }[];
   userRating?: number;
   reviewSummary?: string;
@@ -112,6 +117,106 @@ function balanceJsonBrackets(s: string): string {
 }
 
 export async function generateAIResponse(query: string, imageUri?: string): Promise<AIResponse> {
+  try {
+    console.log('🤖 Generating enhanced AI response for:', query, imageUri ? 'with image' : 'text only');
+    
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('AI service timeout')), 5000); // 5 second timeout
+    });
+
+    const response = await Promise.race([
+      fetch('https://toolkit.rork.com/text/llm/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'system',
+              content: `You are a smart shopping assistant. Analyze the product query and provide helpful insights in JSON format with these fields:
+        - summary: Brief overview of the product
+        - keyFeatures: Array of key features to look for
+        - pros: Array of advantages
+        - cons: Array of potential drawbacks
+        - recommendation: Your buying recommendation
+        - priceRange: Expected price range in INR
+        - bestTime: Best time to buy (seasonal advice)
+        - alternatives: Array of alternative products to consider
+        
+        Keep responses concise and practical for Indian consumers.`
+            },
+            imageUri ? {
+              role: 'user',
+              content: [
+                { type: 'text', text: `Analyze this product image and the query: "${query}". Provide shopping insights.` },
+                { type: 'image', image: imageUri }
+              ]
+            } : {
+              role: 'user',
+              content: `Provide shopping insights for: "${query}"`
+            }
+          ]
+        })
+      }),
+      timeoutPromise
+    ]);
+
+    if (!response.ok) {
+      throw new Error(`AI service error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('🤖 AI response received:', data.completion ? 'Success' : 'No completion');
+    
+    if (!data.completion) {
+      throw new Error('No completion in AI response');
+    }
+
+    // Try to parse JSON from the completion
+    try {
+      const jsonMatch = data.completion.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        console.log('✅ AI insights parsed successfully');
+        return parsed;
+      }
+    } catch (parseError) {
+      console.warn('⚠️ Failed to parse AI response as JSON, using fallback');
+    }
+
+    // Fallback: create structured response from text
+    return {
+      summary: data.completion.substring(0, 200) + '...',
+      keyFeatures: ['Check product reviews', 'Compare prices across platforms', 'Verify seller ratings'],
+      pros: ['Multiple options available', 'Price comparison possible'],
+      cons: ['Prices may vary', 'Check delivery times'],
+      recommendation: 'Compare prices and read reviews before purchasing.',
+      priceRange: 'Varies by model and seller',
+      bestTime: 'Check for seasonal sales and offers',
+      alternatives: ['Similar products from other brands']
+    };
+
+  } catch (error) {
+    console.error('❌ AI service error:', error);
+    
+    // Return fallback insights
+    return {
+      summary: `Here's what you should know about "${query}". We're having trouble connecting to our AI service right now, but here are some general insights.`,
+      keyFeatures: ['Check product specifications', 'Read customer reviews', 'Compare prices'],
+      pros: ['Multiple purchasing options', 'Price comparison available'],
+      cons: ['Prices may fluctuate', 'Delivery times vary'],
+      recommendation: 'Compare prices across different platforms and read reviews before making a purchase.',
+      priceRange: 'Check current market prices',
+      bestTime: 'Look for seasonal sales and discount periods',
+      alternatives: ['Consider similar products from different brands']
+    };
+  }
+}
+
+// Legacy function for backward compatibility
+export async function generateAIResponseLegacy(query: string, imageUri?: string): Promise<AIResponse> {
   console.log('🤖 Generating enhanced AI response for:', query, imageUri ? 'with image' : 'text only');
   
   // If image is provided, analyze it first
@@ -227,24 +332,33 @@ export async function generateAIResponse(query: string, imageUri?: string): Prom
   // Fallback to standard AI API
   try {
     console.log('📡 Attempting to call standard AI API...');
-    const response = await fetch('https://toolkit.rork.com/text/llm/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a product research assistant specializing in the Indian market. Provide CRISP, SHORT, and CONCISE information about products. Keep all responses brief and to the point. Return ONLY valid JSON. Do not include backticks or code fences. Use this shape: {"howToUse": string[], "tips": string[], "pros": string[], "cons": string[], "generalInsights": string, "specifications": Record<string,string>, "alternatives": Array<{"name":string,"price":string,"reason":string}>, "faqs": Array<{"question":string,"answer":string}>, "userRating": number, "reviewSummary": string, "warranty": string, "availability": string }'
-          },
-          {
-            role: 'user',
-            content: `Provide comprehensive information about: ${query}. Focus on the Indian market context, pricing, availability, and user experience.`
-          }
-        ]
-      })
+    
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('AI service timeout')), 5000); // 5 second timeout
     });
+
+    const response = await Promise.race([
+      fetch('https://toolkit.rork.com/text/llm/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a product research assistant specializing in the Indian market. Provide CRISP, SHORT, and CONCISE information about products. Keep all responses brief and to the point. Return ONLY valid JSON. Do not include backticks or code fences. Use this shape: {"howToUse": string[], "tips": string[], "pros": string[], "cons": string[], "generalInsights": string, "specifications": Record<string,string>, "alternatives": Array<{"name":string,"price":string,"reason":string}>, "faqs": Array<{"question":string,"answer":string}>, "userRating": number, "reviewSummary": string, "warranty": string, "availability": string }'
+            },
+            {
+              role: 'user',
+              content: `Provide comprehensive information about: ${query}. Focus on the Indian market context, pricing, availability, and user experience.`
+            }
+          ]
+        })
+      }),
+      timeoutPromise
+    ]);
 
     if (response.ok) {
       console.log('AI API response received successfully');
@@ -573,33 +687,41 @@ async function analyzeProductImage(imageUri: string, fallbackQuery: string): Pro
       base64Image = imageUri;
     }
     
-    const response = await fetch('https://toolkit.rork.com/text/llm/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a product identification expert specializing in Indian e-commerce. Analyze the image and identify the specific product for price comparison. Return ONLY a JSON object with "productName" (specific product name suitable for shopping searches in India) and "confidence" (0-1 score). Be very specific - include brand, model, size, color if visible. Focus on making the product name perfect for finding exact matches on Indian shopping sites like Amazon, Flipkart, etc.'
-          },
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: `Identify this product for price comparison on Indian e-commerce sites. Be very specific with brand, model, and key features. If you can't identify it clearly, use this fallback: "${fallbackQuery}". Make sure the product name is searchable on sites like Amazon India, Flipkart, etc.`
-              },
-              {
-                type: 'image',
-                image: base64Image
-              }
-            ]
-          }
-        ]
-      })
+    // Add timeout to prevent hanging
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Image analysis timeout')), 8000); // 8 second timeout
     });
+
+    const response = await Promise.race([
+      fetch('https://toolkit.rork.com/text/llm/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a product identification expert specializing in Indian e-commerce. Analyze the image and identify the specific product for price comparison. Return ONLY a JSON object with "productName" (specific product name suitable for shopping searches in India) and "confidence" (0-1 score). Be very specific - include brand, model, size, color if visible. Focus on making the product name perfect for finding exact matches on Indian shopping sites like Amazon, Flipkart, etc.'
+            },
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: `Identify this product for price comparison on Indian e-commerce sites. Be very specific with brand, model, and key features. If you can't identify it clearly, use this fallback: "${fallbackQuery}". Make sure the product name is searchable on sites like Amazon India, Flipkart, etc.`
+                },
+                {
+                  type: 'image',
+                  image: base64Image
+                }
+              ]
+            }
+          ]
+        })
+      }),
+      timeoutPromise
+    ]);
 
     if (response.ok) {
       const data = await response.json();

@@ -173,7 +173,7 @@ async function callBackendScraper(platform: string, query: string): Promise<Prod
     
     // Add timeout to prevent hanging
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Backend request timeout')), 8000); // 8 second timeout
+      setTimeout(() => reject(new Error('Backend request timeout')), 4000); // 4 second timeout
     });
     
     const response = await Promise.race([
@@ -428,7 +428,7 @@ export async function fetchRealPrices(query: string): Promise<ScrapingResponse> 
     try {
       // Add per-platform timeout
       const platformTimeout = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Platform timeout')), 6000); // 6 second per platform
+        setTimeout(() => reject(new Error('Platform timeout')), 3000); // 3 second per platform
       });
       
       const products = await Promise.race([
@@ -447,12 +447,12 @@ export async function fetchRealPrices(query: string): Promise<ScrapingResponse> 
     }
   });
   
-  // Wait for all platforms with overall timeout
+  // Wait for all platforms with reduced timeout
   const overallTimeout = new Promise<void>((resolve) => {
     setTimeout(() => {
       console.log('⏰ Overall scraping timeout reached, proceeding with available results');
       resolve();
-    }, 15000); // 15 second overall timeout
+    }, 6000); // 6 second overall timeout
   });
   
   await Promise.race([

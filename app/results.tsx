@@ -206,7 +206,7 @@ export default function ResultsScreen() {
           setTimeout(() => {
             console.log('⏰ Maximum timeout reached, providing fallback data');
             reject(new Error('Maximum loading timeout reached'));
-          }, 30000); // 30 second maximum timeout
+          }, 10000); // 10 second maximum timeout
         });
         
         const dataPromise = (async () => {
@@ -219,10 +219,22 @@ export default function ResultsScreen() {
           if (abortController.signal.aborted) return;
           
           console.log('Fetching AI insights and price comparison...');
-          const [aiInsights, priceComparison] = await Promise.all([
+          
+          // Use Promise.allSettled to prevent one failure from blocking everything
+          const [aiResult, priceResult] = await Promise.allSettled([
             imageUri ? generateAIResponse(query as string, imageUri as string) : generateAIResponse(query as string),
             fetchPriceComparison(query as string, location)
           ]);
+          
+          const aiInsights = aiResult.status === 'fulfilled' ? aiResult.value : null;
+          const priceComparison = priceResult.status === 'fulfilled' ? priceResult.value : [];
+          
+          if (aiResult.status === 'rejected') {
+            console.warn('AI insights failed:', aiResult.reason);
+          }
+          if (priceResult.status === 'rejected') {
+            console.warn('Price comparison failed:', priceResult.reason);
+          }
           
           if (abortController.signal.aborted) return;
           
