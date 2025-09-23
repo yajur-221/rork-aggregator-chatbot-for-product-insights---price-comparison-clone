@@ -69,15 +69,15 @@ export default function LoginModal({ visible, onClose }: LoginModalProps) {
         setStep('otp');
         Alert.alert(
           'OTP Sent! 📱', 
-          `We've sent a 6-digit verification code to ${phoneNumber}.\n\n🔍 For demo purposes, check the console to see the OTP.`,
-          [{ text: 'OK', style: 'default' }]
+          `Demo Mode: We've simulated sending a 6-digit verification code to ${phoneNumber}.\n\n🔍 Check the console/logs to see your OTP code.\n\n💡 In production, this would be sent via SMS.`,
+          [{ text: 'Got it!', style: 'default' }]
         );
       } else {
-        Alert.alert('Error', 'Failed to send OTP. Please try again or wait a minute before retrying.');
+        Alert.alert('Demo Error', 'Failed to simulate OTP sending. This is just a demo - in production, check your SMS service configuration.');
       }
     } catch (error) {
       console.error('Send OTP error:', error);
-      Alert.alert('Error', 'Failed to send OTP. Please check your connection and try again.');
+      Alert.alert('Demo Error', 'Failed to simulate OTP sending. This is just a demo - in production, check your SMS service configuration.');
     } finally {
       setIsLoading(false);
     }
@@ -98,7 +98,7 @@ export default function LoginModal({ visible, onClose }: LoginModalProps) {
       } else {
         Alert.alert(
           'Invalid OTP ❌', 
-          'The code you entered is incorrect. Please check the code and try again.\n\n💡 Tip: Check the console for the correct OTP in demo mode.'
+          'The code you entered is incorrect. Please check the code and try again.\n\n💡 Demo Tip: Check the console/logs for the correct OTP code.'
         );
         setOtp(''); // Clear the OTP field
       }
@@ -240,7 +240,7 @@ export default function LoginModal({ visible, onClose }: LoginModalProps) {
         Enter the 6-digit code sent to {phoneNumber}
       </Text>
       <Text style={styles.demoHint}>
-        💡 Demo Mode: Check console for OTP
+        💡 Demo Mode: Check console/logs for your OTP code
       </Text>
 
       <View style={styles.inputContainer}>
