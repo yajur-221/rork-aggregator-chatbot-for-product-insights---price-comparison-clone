@@ -8,19 +8,22 @@ import {
   SafeAreaView,
   Platform,
   useWindowDimensions,
+  Alert,
 } from 'react-native';
 import { Search, Camera, Image, Clock } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
-import { Alert } from 'react-native';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
 import SearchHistoryModal from '@/components/SearchHistoryModal';
+import LoginModal from '@/components/LoginModal';
+import UserProfileButton from '@/components/UserProfileButton';
 
 export default function PriceComparisonHome() {
   const [inputText, setInputText] = useState('');
   const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const { addSearchQuery } = useSearchHistory();
 
@@ -170,14 +173,18 @@ export default function PriceComparisonHome() {
       
       <SafeAreaView style={styles.content}>
         <View style={styles.centerContainer}>
-          {/* Search History Button */}
-          <TouchableOpacity 
-            style={styles.historyButton}
-            onPress={() => setShowHistoryModal(true)}
-          >
-            <Clock color="#60a5fa" size={20} />
-            <Text style={styles.historyButtonText}>Search History</Text>
-          </TouchableOpacity>
+          {/* Top Bar with Login and History */}
+          <View style={styles.topBar}>
+            <TouchableOpacity 
+              style={styles.historyButton}
+              onPress={() => setShowHistoryModal(true)}
+            >
+              <Clock color="#60a5fa" size={20} />
+              <Text style={styles.historyButtonText}>History</Text>
+            </TouchableOpacity>
+            
+            <UserProfileButton onLoginPress={() => setShowLoginModal(true)} />
+          </View>
 
           {/* Main Title */}
           <Text style={styles.mainTitle}>Find the Best Prices</Text>
@@ -243,6 +250,12 @@ export default function PriceComparisonHome() {
             params: { query }
           });
         }}
+      />
+      
+      {/* Login Modal */}
+      <LoginModal
+        visible={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
       />
     </View>
   );
@@ -376,6 +389,14 @@ const styles = StyleSheet.create({
       boxShadow: '0 4px 16px rgba(34, 197, 94, 0.3)',
     }),
   },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 32,
+    paddingHorizontal: 8,
+  },
   historyButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -386,8 +407,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(31, 41, 55, 0.4)',
     borderWidth: 1,
     borderColor: 'rgba(59, 130, 246, 0.3)',
-    marginBottom: 32,
-    alignSelf: 'center',
     ...(Platform.OS === 'web' && {
       backdropFilter: 'blur(10px)',
       WebkitBackdropFilter: 'blur(10px)',

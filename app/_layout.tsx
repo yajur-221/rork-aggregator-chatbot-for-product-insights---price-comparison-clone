@@ -5,6 +5,7 @@ import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StyleSheet } from "react-native";
 import { SearchHistoryProvider } from "@/hooks/useSearchHistory";
+import { AuthProvider } from "@/hooks/useAuth";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -26,11 +27,13 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SearchHistoryProvider>
-        <GestureHandlerRootView style={styles.container}>
-          <RootLayoutNav />
-        </GestureHandlerRootView>
-      </SearchHistoryProvider>
+      <AuthProvider>
+        <SearchHistoryProvider>
+          <GestureHandlerRootView style={styles.container}>
+            <RootLayoutNav />
+          </GestureHandlerRootView>
+        </SearchHistoryProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
