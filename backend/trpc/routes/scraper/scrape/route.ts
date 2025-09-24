@@ -46,55 +46,136 @@ const API_CONFIGS = {
 };
 
 /**
- * Get realistic base prices for different product categories
+ * Get realistic base prices for different product categories with more accurate pricing
  */
 function getRealisticBasePrice(query: string): number {
   const queryLower = query.toLowerCase();
   
-  // Electronics
+  // Electronics - iPhone models
+  if (queryLower.includes('iphone 15 pro max')) return 159900;
+  if (queryLower.includes('iphone 15 pro')) return 134900;
+  if (queryLower.includes('iphone 15 plus')) return 89900;
   if (queryLower.includes('iphone 15')) return 79900;
+  if (queryLower.includes('iphone 14 pro max')) return 139900;
+  if (queryLower.includes('iphone 14 pro')) return 129900;
+  if (queryLower.includes('iphone 14 plus')) return 79900;
   if (queryLower.includes('iphone 14')) return 69900;
+  if (queryLower.includes('iphone 13 pro')) return 119900;
   if (queryLower.includes('iphone 13')) return 59900;
-  if (queryLower.includes('samsung galaxy s24')) return 74999;
+  if (queryLower.includes('iphone 12')) return 49900;
+  if (queryLower.includes('iphone se')) return 43900;
+  
+  // Samsung Galaxy series
+  if (queryLower.includes('samsung galaxy s24 ultra')) return 129999;
+  if (queryLower.includes('samsung galaxy s24+')) return 99999;
+  if (queryLower.includes('samsung galaxy s24')) return 79999;
+  if (queryLower.includes('samsung galaxy s23')) return 69999;
+  if (queryLower.includes('samsung galaxy a54')) return 38999;
+  if (queryLower.includes('samsung galaxy a34')) return 30999;
+  if (queryLower.includes('samsung galaxy m54')) return 26999;
+  
+  // OnePlus series
   if (queryLower.includes('oneplus 12')) return 64999;
-  if (queryLower.includes('macbook air')) return 114900;
-  if (queryLower.includes('macbook pro')) return 199900;
-  if (queryLower.includes('dell laptop')) return 45000;
-  if (queryLower.includes('hp laptop')) return 42000;
-  if (queryLower.includes('airpods')) return 24900;
-  if (queryLower.includes('sony headphones')) return 15000;
-  if (queryLower.includes('jbl speaker')) return 8000;
-  if (queryLower.includes('samsung tv')) return 35000;
-  if (queryLower.includes('lg tv')) return 32000;
+  if (queryLower.includes('oneplus 11')) return 56999;
+  if (queryLower.includes('oneplus nord')) return 29999;
   
-  // Fashion
-  if (queryLower.includes('nike shoes')) return 7000;
-  if (queryLower.includes('adidas shoes')) return 6500;
-  if (queryLower.includes('puma shoes')) return 4500;
-  if (queryLower.includes('levis jeans')) return 3500;
-  if (queryLower.includes('zara shirt')) return 2500;
-  if (queryLower.includes('h&m')) return 1500;
+  // Laptops - MacBook
+  if (queryLower.includes('macbook pro 16')) return 249900;
+  if (queryLower.includes('macbook pro 14')) return 199900;
+  if (queryLower.includes('macbook air m2')) return 114900;
+  if (queryLower.includes('macbook air m1')) return 99900;
   
-  // Groceries
-  if (queryLower.includes('almonds')) return 800;
-  if (queryLower.includes('cashews')) return 1200;
-  if (queryLower.includes('walnuts')) return 1000;
-  if (queryLower.includes('pistachios')) return 1500;
-  if (queryLower.includes('dates')) return 300;
-  if (queryLower.includes('raisins')) return 400;
-  if (queryLower.includes('milk')) return 60;
-  if (queryLower.includes('bread')) return 40;
-  if (queryLower.includes('rice')) return 80;
-  if (queryLower.includes('dal')) return 120;
-  if (queryLower.includes('oil')) return 200;
+  // Laptops - Windows
+  if (queryLower.includes('dell xps 13')) return 89999;
+  if (queryLower.includes('dell inspiron')) return 45999;
+  if (queryLower.includes('hp spectre')) return 99999;
+  if (queryLower.includes('hp pavilion')) return 55999;
+  if (queryLower.includes('lenovo thinkpad')) return 75999;
+  if (queryLower.includes('asus zenbook')) return 69999;
+  if (queryLower.includes('gaming laptop')) return 89999;
   
-  // Default based on query
-  if (queryLower.includes('phone') || queryLower.includes('mobile')) return 25000;
-  if (queryLower.includes('laptop') || queryLower.includes('computer')) return 50000;
-  if (queryLower.includes('watch')) return 15000;
-  if (queryLower.includes('tablet')) return 20000;
+  // Audio devices
+  if (queryLower.includes('airpods pro')) return 24900;
+  if (queryLower.includes('airpods 3')) return 20900;
+  if (queryLower.includes('airpods 2')) return 12900;
+  if (queryLower.includes('sony wh-1000xm5')) return 29990;
+  if (queryLower.includes('sony wh-1000xm4')) return 24990;
+  if (queryLower.includes('bose quietcomfort')) return 26990;
+  if (queryLower.includes('jbl flip')) return 7999;
+  if (queryLower.includes('jbl charge')) return 12999;
+  if (queryLower.includes('boat headphones')) return 2999;
   
-  return Math.floor(Math.random() * 10000) + 5000;
+  // TVs
+  if (queryLower.includes('samsung 65 inch')) return 89999;
+  if (queryLower.includes('samsung 55 inch')) return 59999;
+  if (queryLower.includes('lg oled 65')) return 149999;
+  if (queryLower.includes('lg oled 55')) return 99999;
+  if (queryLower.includes('sony bravia 65')) return 119999;
+  if (queryLower.includes('mi tv 55')) return 39999;
+  
+  // Watches
+  if (queryLower.includes('apple watch ultra')) return 89900;
+  if (queryLower.includes('apple watch series 9')) return 45900;
+  if (queryLower.includes('apple watch se')) return 29900;
+  if (queryLower.includes('samsung galaxy watch')) return 24999;
+  if (queryLower.includes('fitbit versa')) return 19999;
+  
+  // Fashion - Shoes
+  if (queryLower.includes('nike air jordan')) return 12995;
+  if (queryLower.includes('nike air max')) return 8995;
+  if (queryLower.includes('nike revolution')) return 4995;
+  if (queryLower.includes('adidas ultraboost')) return 16999;
+  if (queryLower.includes('adidas stan smith')) return 7999;
+  if (queryLower.includes('puma rs-x')) return 8999;
+  if (queryLower.includes('converse chuck taylor')) return 4999;
+  
+  // Fashion - Clothing
+  if (queryLower.includes('levis 501')) return 4999;
+  if (queryLower.includes('levis jeans')) return 3499;
+  if (queryLower.includes('zara shirt')) return 2990;
+  if (queryLower.includes('h&m shirt')) return 1499;
+  if (queryLower.includes('uniqlo')) return 1990;
+  
+  // Groceries - Nuts and dry fruits
+  if (queryLower.includes('california almonds')) return 1200;
+  if (queryLower.includes('almonds 1kg')) return 800;
+  if (queryLower.includes('cashews 1kg')) return 1400;
+  if (queryLower.includes('walnuts 1kg')) return 1100;
+  if (queryLower.includes('pistachios 500g')) return 1800;
+  if (queryLower.includes('dates 1kg')) return 400;
+  if (queryLower.includes('raisins 1kg')) return 500;
+  
+  // Groceries - Daily essentials
+  if (queryLower.includes('amul milk 1l')) return 62;
+  if (queryLower.includes('bread')) return 25;
+  if (queryLower.includes('basmati rice 5kg')) return 450;
+  if (queryLower.includes('toor dal 1kg')) return 140;
+  if (queryLower.includes('sunflower oil 1l')) return 180;
+  if (queryLower.includes('olive oil 500ml')) return 450;
+  
+  // Home appliances
+  if (queryLower.includes('lg refrigerator')) return 35999;
+  if (queryLower.includes('samsung washing machine')) return 28999;
+  if (queryLower.includes('whirlpool ac')) return 32999;
+  if (queryLower.includes('microwave oven')) return 8999;
+  
+  // Generic categories with better pricing
+  if (queryLower.includes('smartphone') || queryLower.includes('mobile phone')) return 18999;
+  if (queryLower.includes('laptop') || queryLower.includes('notebook')) return 55999;
+  if (queryLower.includes('tablet') || queryLower.includes('ipad')) return 29999;
+  if (queryLower.includes('headphones') || queryLower.includes('earphones')) return 3999;
+  if (queryLower.includes('speaker') || queryLower.includes('bluetooth speaker')) return 2999;
+  if (queryLower.includes('smartwatch') || queryLower.includes('fitness tracker')) return 12999;
+  if (queryLower.includes('camera') || queryLower.includes('dslr')) return 45999;
+  if (queryLower.includes('television') || queryLower.includes('smart tv')) return 42999;
+  
+  // Default fallback with more realistic range
+  const words = queryLower.split(' ');
+  if (words.length === 1 && words[0].length < 4) return 2999; // Short queries likely cheaper items
+  if (words.some(word => ['premium', 'pro', 'max', 'ultra'].includes(word))) return 89999;
+  if (words.some(word => ['budget', 'basic', 'mini'].includes(word))) return 8999;
+  
+  return Math.floor(Math.random() * 25000) + 15000; // ₹15,000 - ₹40,000
 }
 
 /**
@@ -217,7 +298,7 @@ function getRelevantPlatforms(query: string): string[] {
 }
 
 /**
- * Generate realistic mock data for a platform
+ * Generate realistic mock data for a platform with accurate market pricing
  */
 function generatePlatformProducts(platform: string, query: string): ProductResult[] {
   const config = API_CONFIGS[platform as keyof typeof API_CONFIGS];
@@ -226,25 +307,47 @@ function generatePlatformProducts(platform: string, query: string): ProductResul
   const basePrice = getRealisticBasePrice(query);
   const platformMultiplier = getPlatformPriceMultiplier(platform);
   
-  const productCount = Math.floor(Math.random() * 4) + 3; // 3-6 products
+  // Generate 4-8 products for better variety
+  const productCount = Math.floor(Math.random() * 5) + 4;
   const products: ProductResult[] = [];
   
   for (let i = 0; i < productCount; i++) {
-    const variation = 0.8 + Math.random() * 0.4; // ±20% variation
+    // More realistic price variations based on product variants
+    let variation: number;
+    if (i === 0) {
+      // First product is usually the exact match with minimal variation
+      variation = 0.95 + Math.random() * 0.1; // ±5% variation
+    } else if (i === 1) {
+      // Second product is a close variant
+      variation = 0.9 + Math.random() * 0.2; // ±10% variation
+    } else {
+      // Other products have more variation (different models, storage, etc.)
+      variation = 0.7 + Math.random() * 0.6; // ±30% variation
+    }
+    
     const price = Math.floor(basePrice * platformMultiplier * variation);
-    const originalPrice = Math.random() > 0.3 ? Math.floor(price * (1.1 + Math.random() * 0.3)) : undefined;
+    
+    // More realistic original pricing logic
+    let originalPrice: number | undefined;
+    if (Math.random() > 0.25) { // 75% chance of having original price
+      const discountPercent = 5 + Math.random() * 25; // 5-30% discount
+      originalPrice = Math.floor(price / (1 - discountPercent / 100));
+    }
+    
+    // Generate more specific product titles based on the variant
+    const variants = getProductVariants(query, i);
     
     products.push({
       id: `${platform}-${i + 1}`,
-      title: `${query} - ${getProductVariant(i)}`,
-      price,
+      title: variants.title,
+      price: Math.max(price, 50), // Minimum price of ₹50
       originalPrice,
       image: getProductImage(query, i),
       url: `${config.baseUrl}${config.searchPath}${encodeURIComponent(query)}`,
       platform: config.name,
-      rating: Math.round((3.5 + Math.random() * 1.5) * 10) / 10,
-      reviews: Math.floor(Math.random() * 5000) + 100,
-      availability: Math.random() > 0.15 ? 'In Stock' : 'Limited Stock',
+      rating: Math.round((3.8 + Math.random() * 1.2) * 10) / 10, // 3.8-5.0 rating
+      reviews: Math.floor(Math.random() * 8000) + 200, // 200-8200 reviews
+      availability: Math.random() > 0.1 ? 'In Stock' : 'Limited Stock', // 90% in stock
       delivery: getDeliveryInfo(platform),
       seller: getSellerInfo(platform),
       discount: originalPrice ? Math.round(((originalPrice - price) / originalPrice) * 100) : undefined
@@ -252,6 +355,102 @@ function generatePlatformProducts(platform: string, query: string): ProductResul
   }
   
   return products.sort((a, b) => a.price - b.price);
+}
+
+/**
+ * Get more specific product variants based on the query and index
+ */
+function getProductVariants(query: string, index: number): { title: string } {
+  const queryLower = query.toLowerCase();
+  
+  // iPhone specific variants
+  if (queryLower.includes('iphone')) {
+    const variants = [
+      `${query} (128GB)`,
+      `${query} (256GB)`,
+      `${query} (512GB)`,
+      `${query} (1TB)`,
+      `${query} - Refurbished`,
+      `${query} - International Version`,
+      `${query} with AppleCare+`,
+      `${query} - Unlocked`
+    ];
+    return { title: variants[index % variants.length] };
+  }
+  
+  // Samsung variants
+  if (queryLower.includes('samsung')) {
+    const variants = [
+      `${query} (8GB RAM, 128GB)`,
+      `${query} (8GB RAM, 256GB)`,
+      `${query} (12GB RAM, 256GB)`,
+      `${query} (12GB RAM, 512GB)`,
+      `${query} - 5G Version`,
+      `${query} - Dual SIM`,
+      `${query} with Galaxy Buds`,
+      `${query} - Enterprise Edition`
+    ];
+    return { title: variants[index % variants.length] };
+  }
+  
+  // Laptop variants
+  if (queryLower.includes('laptop') || queryLower.includes('macbook')) {
+    const variants = [
+      `${query} (8GB RAM, 256GB SSD)`,
+      `${query} (16GB RAM, 512GB SSD)`,
+      `${query} (16GB RAM, 1TB SSD)`,
+      `${query} (32GB RAM, 1TB SSD)`,
+      `${query} - Intel Version`,
+      `${query} - AMD Version`,
+      `${query} with Extended Warranty`,
+      `${query} - Gaming Edition`
+    ];
+    return { title: variants[index % variants.length] };
+  }
+  
+  // Headphones variants
+  if (queryLower.includes('headphones') || queryLower.includes('airpods')) {
+    const variants = [
+      `${query} - Wireless`,
+      `${query} - Noise Cancelling`,
+      `${query} - Sports Edition`,
+      `${query} with Charging Case`,
+      `${query} - Studio Quality`,
+      `${query} - Travel Edition`,
+      `${query} - Limited Color`,
+      `${query} - Pro Version`
+    ];
+    return { title: variants[index % variants.length] };
+  }
+  
+  // TV variants
+  if (queryLower.includes('tv') || queryLower.includes('television')) {
+    const variants = [
+      `${query} - 43 inch`,
+      `${query} - 50 inch`,
+      `${query} - 55 inch`,
+      `${query} - 65 inch`,
+      `${query} - 4K HDR`,
+      `${query} - Smart TV`,
+      `${query} - OLED`,
+      `${query} - QLED`
+    ];
+    return { title: variants[index % variants.length] };
+  }
+  
+  // Generic variants
+  const genericVariants = [
+    `${query} - Latest Model`,
+    `${query} - Premium Edition`,
+    `${query} - Best Seller`,
+    `${query} - Top Rated`,
+    `${query} - Special Offer`,
+    `${query} - Limited Edition`,
+    `${query} - Pro Version`,
+    `${query} - Standard Model`
+  ];
+  
+  return { title: genericVariants[index % genericVariants.length] };
 }
 
 export const scrapeProcedure = publicProcedure

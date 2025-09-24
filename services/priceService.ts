@@ -136,7 +136,52 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
     return [];
   }
   
-  // Try Python scraper first (most comprehensive)
+  // Try backend scraper first (most accurate and fast)
+  try {
+    console.log('🔧 Attempting backend tRPC scraper...');
+    const { trpcClient } = await import('@/lib/trpc');
+    
+    const backendResult = await trpcClient.scraper.scrape.query({
+      query: sanitizedQuery,
+      platforms: undefined // Let it auto-select relevant platforms
+    });
+    
+    if (backendResult.success && backendResult.products.length > 0) {
+      console.log('✅ Backend scraper successful:', {
+        totalProducts: backendResult.totalResults,
+        cheapestPrice: `₹${backendResult.products[0]?.price}`,
+        platforms: [...new Set(backendResult.products.map((p: any) => p.platform))].join(', ')
+      });
+      
+      // Convert to UI format
+      const backendItems: PriceItem[] = backendResult.products.map((product: any) => ({
+        id: product.id,
+        name: product.title,
+        price: product.price,
+        originalPrice: product.originalPrice,
+        image: product.image,
+        source: product.platform,
+        sourceType: 'online' as const,
+        link: product.url,
+        stockStatus: product.availability,
+        deliveryTime: product.delivery,
+        rating: product.rating,
+        reviewCount: product.reviews
+      }));
+      
+      // Add local stores if location is available
+      if (location) {
+        const localStores = generateLocalStores(sanitizedQuery, location, backendItems[0]?.price || 1000);
+        backendItems.push(...localStores);
+      }
+      
+      return backendItems.sort((a, b) => a.price - b.price);
+    }
+  } catch (error) {
+    console.log('⚠️ Backend scraper failed, trying Python scraper:', error);
+  }
+  
+  // Try Python scraper as fallback
   try {
     console.log('🐍 Attempting Python scraper...');
     const pythonScrapedProducts = await fetchPricesWithPythonScraper(sanitizedQuery, location);
