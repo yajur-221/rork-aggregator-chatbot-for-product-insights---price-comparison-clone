@@ -462,7 +462,8 @@ function getProductVariants(query: string, index: number): { title: string } {
 
 export const scrapeProcedure = publicProcedure
   .input(inputSchema)
-  .query(async ({ input }: { input: InputType }) => {
+  .query(async (ctx: any) => {
+    const { input } = ctx;
     console.log('🔍 Backend scraping request:', input);
     
     const { query, platforms: requestedPlatforms } = input;
