@@ -1,6 +1,13 @@
 import { z } from "zod";
 import { publicProcedure } from "@/backend/trpc/create-context";
 
+const inputSchema = z.object({
+  query: z.string().min(1).max(100),
+  platforms: z.array(z.string()).optional()
+});
+
+type InputType = z.infer<typeof inputSchema>;
+
 interface ProductResult {
   id: string;
   title: string;
@@ -454,13 +461,8 @@ function getProductVariants(query: string, index: number): { title: string } {
 }
 
 export const scrapeProcedure = publicProcedure
-  .input(
-    z.object({
-      query: z.string().min(1).max(100),
-      platforms: z.array(z.string()).optional()
-    })
-  )
-  .query(async ({ input }) => {
+  .input(inputSchema)
+  .query(async ({ input }: { input: InputType }) => {
     console.log('🔍 Backend scraping request:', input);
     
     const { query, platforms: requestedPlatforms } = input;
