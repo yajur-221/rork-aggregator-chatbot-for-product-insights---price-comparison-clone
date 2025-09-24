@@ -10,7 +10,7 @@ import {
   useWindowDimensions,
   Alert,
 } from 'react-native';
-import { Search, Camera, Image, Clock, Sparkles, TrendingUp, Zap } from 'lucide-react-native';
+import { Search, Camera, Image, Clock } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -136,9 +136,9 @@ export default function PriceComparisonHome() {
       right: -30,
       bottom: -30,
       borderRadius: screenHeight * 0.4 + 30,
-      backgroundColor: 'rgba(236, 72, 153, 0.2)',
+      backgroundColor: 'rgba(59, 130, 246, 0.2)',
       ...(Platform.OS === 'web' && {
-        boxShadow: '0 0 150px rgba(236, 72, 153, 0.4), 0 0 200px rgba(59, 130, 246, 0.3), 0 0 250px rgba(34, 197, 94, 0.2)',
+        boxShadow: '0 0 150px rgba(59, 130, 246, 0.4), inset 0 0 100px rgba(59, 130, 246, 0.1)',
       }),
     },
     gradientStart: { x: 0, y: 0 } as const,
@@ -151,30 +151,23 @@ export default function PriceComparisonHome() {
     <View style={styles.container}>
       <StatusBar style="light" />
       
-      {/* Vibrant Background */}
+      {/* Dark Blue Background */}
       <LinearGradient
-        colors={['#0f0f23', '#1a0b3d', '#2d1b69', '#3730a3', '#4338ca']}
+        colors={['#0f172a', '#1e293b', '#1e40af']}
         style={styles.backgroundGradient}
         start={dynamicStyles.gradientStart}
         end={dynamicStyles.gradientEnd}
       />
       
-      {/* Floating Orbs */}
-      <View style={styles.orbContainer}>
-        <View style={[styles.orb, styles.orb1]} />
-        <View style={[styles.orb, styles.orb2]} />
-        <View style={[styles.orb, styles.orb3]} />
-      </View>
-      
-      {/* Colorful Curve at Bottom */}
+      {/* Blue Curve at Bottom */}
       <View style={dynamicStyles.earthContainer}>
         <LinearGradient
-          colors={['#ec4899', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6']}
+          colors={['#1d4ed8', '#3b82f6', '#60a5fa']}
           style={dynamicStyles.earthCurve}
           start={dynamicStyles.earthGradientStart}
           end={dynamicStyles.earthGradientEnd}
         />
-        {/* Rainbow Glow */}
+        {/* Blue Glow */}
         <View style={dynamicStyles.earthGlow} />
       </View>
       
@@ -186,40 +179,16 @@ export default function PriceComparisonHome() {
               style={styles.historyButton}
               onPress={() => setShowHistoryModal(true)}
             >
-              <Clock color="#fbbf24" size={20} />
+              <Clock color="#60a5fa" size={20} />
               <Text style={styles.historyButtonText}>History</Text>
             </TouchableOpacity>
             
             <UserProfileButton onLoginPress={() => setShowLoginModal(true)} />
           </View>
 
-          {/* Main Title with Icon */}
-          <View style={styles.titleContainer}>
-            <View style={styles.titleIconContainer}>
-              <Sparkles color="#fbbf24" size={32} />
-            </View>
-            <Text style={styles.mainTitle}>Find the Best Prices</Text>
-            <View style={styles.titleIconContainer}>
-              <TrendingUp color="#10b981" size={32} />
-            </View>
-          </View>
+          {/* Main Title */}
+          <Text style={styles.mainTitle}>Find the Best Prices</Text>
           <Text style={styles.subtitle}>Compare prices across multiple platforms and save money on every purchase.</Text>
-          
-          {/* Feature Pills */}
-          <View style={styles.featurePills}>
-            <View style={styles.featurePill}>
-              <Zap color="#f59e0b" size={16} />
-              <Text style={styles.featurePillText}>Instant Search</Text>
-            </View>
-            <View style={styles.featurePill}>
-              <TrendingUp color="#10b981" size={16} />
-              <Text style={styles.featurePillText}>Best Deals</Text>
-            </View>
-            <View style={styles.featurePill}>
-              <Camera color="#8b5cf6" size={16} />
-              <Text style={styles.featurePillText}>Photo Search</Text>
-            </View>
-          </View>
           
           {/* Input Container */}
           <View style={styles.inputContainer}>
@@ -246,7 +215,7 @@ export default function PriceComparisonHome() {
                     style={styles.toolbarButton}
                     onPress={handleGallery}
                   >
-                    <Image color="#8b5cf6" size={20} />
+                    <Image color="#60a5fa" size={20} />
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={styles.searchButton}
@@ -342,16 +311,16 @@ const styles = StyleSheet.create({
     maxWidth: 700,
   },
   inputWrapper: {
-    backgroundColor: 'rgba(31, 41, 55, 0.4)',
+    backgroundColor: 'rgba(31, 41, 55, 0.3)',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(236, 72, 153, 0.3)',
+    borderColor: 'rgba(59, 130, 246, 0.3)',
     overflow: 'hidden',
     backdropFilter: 'blur(20px)',
     ...(Platform.OS === 'web' && {
       backdropFilter: 'blur(20px)',
       WebkitBackdropFilter: 'blur(20px)',
-      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 0 1px rgba(236, 72, 153, 0.3)',
+      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 0 1px rgba(59, 130, 246, 0.2)',
     }),
   },
   textInput: {
@@ -372,8 +341,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(236, 72, 153, 0.2)',
-    backgroundColor: 'rgba(236, 72, 153, 0.05)',
+    borderTopColor: 'rgba(59, 130, 246, 0.2)',
+    backgroundColor: 'rgba(59, 130, 246, 0.05)',
   },
   toolbarLeft: {
     flexDirection: 'row',
@@ -383,12 +352,9 @@ const styles = StyleSheet.create({
   toolbarButton: {
     padding: 8,
     borderRadius: 8,
-    backgroundColor: 'rgba(139, 92, 246, 0.2)',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(139, 92, 246, 0.3)',
-    ...(Platform.OS === 'web' && {
-      boxShadow: '0 2px 8px rgba(139, 92, 246, 0.2)',
-    }),
+    borderColor: 'rgba(59, 130, 246, 0.2)',
   },
   searchButton: {
     flexDirection: 'row',
@@ -397,13 +363,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: 'rgba(236, 72, 153, 0.8)',
+    backgroundColor: 'rgba(59, 130, 246, 0.8)',
     borderWidth: 1,
-    borderColor: 'rgba(244, 114, 182, 0.5)',
+    borderColor: 'rgba(96, 165, 250, 0.5)',
     ...(Platform.OS === 'web' && {
       backdropFilter: 'blur(10px)',
       WebkitBackdropFilter: 'blur(10px)',
-      boxShadow: '0 4px 16px rgba(236, 72, 153, 0.4)',
+      boxShadow: '0 4px 16px rgba(59, 130, 246, 0.3)',
     }),
   },
   searchButtonText: {
@@ -440,109 +406,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: 'rgba(31, 41, 55, 0.4)',
     borderWidth: 1,
-    borderColor: 'rgba(251, 191, 36, 0.3)',
+    borderColor: 'rgba(59, 130, 246, 0.3)',
     ...(Platform.OS === 'web' && {
       backdropFilter: 'blur(10px)',
       WebkitBackdropFilter: 'blur(10px)',
-      boxShadow: '0 4px 16px rgba(251, 191, 36, 0.2)',
+      boxShadow: '0 4px 16px rgba(59, 130, 246, 0.2)',
     }),
   },
   historyButtonText: {
-    color: '#fbbf24',
+    color: '#60a5fa',
     fontSize: 14,
     fontWeight: '600',
-  },
-  
-  // Floating Orbs
-  orbContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 0,
-  },
-  orb: {
-    position: 'absolute',
-    borderRadius: 100,
-    opacity: 0.6,
-  },
-  orb1: {
-    width: 120,
-    height: 120,
-    backgroundColor: '#ec4899',
-    top: '15%',
-    right: '10%',
-    ...(Platform.OS === 'web' && {
-      boxShadow: '0 0 60px rgba(236, 72, 153, 0.4)',
-    }),
-  },
-  orb2: {
-    width: 80,
-    height: 80,
-    backgroundColor: '#8b5cf6',
-    top: '25%',
-    left: '15%',
-    ...(Platform.OS === 'web' && {
-      boxShadow: '0 0 40px rgba(139, 92, 246, 0.4)',
-    }),
-  },
-  orb3: {
-    width: 60,
-    height: 60,
-    backgroundColor: '#10b981',
-    bottom: '30%',
-    right: '20%',
-    ...(Platform.OS === 'web' && {
-      boxShadow: '0 0 30px rgba(16, 185, 129, 0.4)',
-    }),
-  },
-  
-  // Title Container
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    gap: 16,
-  },
-  titleIconContainer: {
-    padding: 8,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    ...(Platform.OS === 'web' && {
-      backdropFilter: 'blur(10px)',
-      WebkitBackdropFilter: 'blur(10px)',
-    }),
-  },
-  
-  // Feature Pills
-  featurePills: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 32,
-    flexWrap: 'wrap',
-  },
-  featurePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    ...(Platform.OS === 'web' && {
-      backdropFilter: 'blur(10px)',
-      WebkitBackdropFilter: 'blur(10px)',
-    }),
-  },
-  featurePillText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '500',
   },
 });
