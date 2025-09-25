@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
   },
   mainTitle: {
     fontSize: Platform.OS === 'web' ? 64 : 42,
-    fontFamily: 'Poppins_700Bold',
+    fontWeight: '700',
     color: '#ffffff',
     textAlign: 'center',
     marginBottom: 16,
@@ -316,12 +316,12 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: Platform.OS === 'web' ? 20 : 18,
-    fontFamily: 'OpenSans_400Regular',
-    color: '#e5e7eb',
+    color: '#9ca3af',
     textAlign: 'center',
     marginBottom: 48,
     lineHeight: Platform.OS === 'web' ? 28 : 26,
     maxWidth: 600,
+    fontWeight: '400',
   },
   inputContainer: {
     width: '100%',
