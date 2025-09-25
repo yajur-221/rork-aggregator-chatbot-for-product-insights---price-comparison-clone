@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: Platform.OS === 'web' ? 20 : 18,
     fontFamily: 'OpenSans_400Regular',
-    color: '#9ca3af',
+    color: '#e5e7eb',
     textAlign: 'center',
     marginBottom: 48,
     lineHeight: Platform.OS === 'web' ? 28 : 26,
