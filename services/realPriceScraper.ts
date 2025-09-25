@@ -96,10 +96,6 @@ async function callBackendScraper(productName: string): Promise<BackendScrapingR
     
     console.log('🔗 Backend endpoint:', endpoint);
     
-    // Add timeout to prevent hanging
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-    
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -108,11 +104,8 @@ async function callBackendScraper(productName: string): Promise<BackendScrapingR
       },
       body: JSON.stringify({
         product_name: productName
-      }),
-      signal: controller.signal
+      })
     });
-    
-    clearTimeout(timeoutId);
 
     if (response.ok) {
       const data = await response.json();
@@ -133,11 +126,7 @@ async function callBackendScraper(productName: string): Promise<BackendScrapingR
     
     return null;
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      console.log('⏰ Backend request timed out after 5 seconds');
-    } else {
-      console.log('⚠️ Backend scraper unavailable:', error instanceof Error ? error.message : 'Network error');
-    }
+    console.error('❌ Backend scraper network error:', error);
     return null;
   }
 }
@@ -154,10 +143,6 @@ async function callBackendQueryEndpoint(query: string): Promise<BackendScrapingR
     
     const endpoint = `${backendUrl}/query/price/`;
     
-    // Add timeout to prevent hanging
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-    
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -166,11 +151,8 @@ async function callBackendQueryEndpoint(query: string): Promise<BackendScrapingR
       },
       body: JSON.stringify({
         query: query
-      }),
-      signal: controller.signal
+      })
     });
-    
-    clearTimeout(timeoutId);
 
     if (response.ok) {
       const data = await response.json();
@@ -188,11 +170,7 @@ async function callBackendQueryEndpoint(query: string): Promise<BackendScrapingR
     
     return null;
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      console.log('⏰ Query endpoint timed out after 5 seconds');
-    } else {
-      console.log('⚠️ Query endpoint unavailable:', error instanceof Error ? error.message : 'Network error');
-    }
+    console.error('❌ Query endpoint error:', error);
     return null;
   }
 }
