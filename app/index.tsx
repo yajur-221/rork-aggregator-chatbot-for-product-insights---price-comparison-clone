@@ -212,10 +212,10 @@ export default function PriceComparisonHome() {
               <View style={styles.inputToolbar}>
                 <View style={styles.toolbarLeft}>
                   <TouchableOpacity 
-                    style={styles.toolbarButton}
+                    style={styles.galleryButton}
                     onPress={handleGallery}
                   >
-                    <Image color="#60a5fa" size={20} />
+                    <Image color="#ffffff" size={20} />
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={styles.searchButton}
@@ -349,12 +349,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  toolbarButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+  galleryButton: {
+    padding: 10,
+    borderRadius: 12,
+    backgroundColor: 'rgba(168, 85, 247, 0.8)',
     borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.2)',
+    borderColor: 'rgba(196, 125, 255, 0.5)',
+    ...(Platform.OS === 'web' && {
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
+      boxShadow: '0 4px 16px rgba(168, 85, 247, 0.3)',
+    }),
   },
   searchButton: {
     flexDirection: 'row',
@@ -380,13 +385,13 @@ const styles = StyleSheet.create({
   cameraButton: {
     padding: 10,
     borderRadius: 12,
-    backgroundColor: 'rgba(34, 197, 94, 0.8)',
+    backgroundColor: 'rgba(239, 68, 68, 0.8)',
     borderWidth: 1,
-    borderColor: 'rgba(74, 222, 128, 0.5)',
+    borderColor: 'rgba(248, 113, 113, 0.5)',
     ...(Platform.OS === 'web' && {
       backdropFilter: 'blur(10px)',
       WebkitBackdropFilter: 'blur(10px)',
-      boxShadow: '0 4px 16px rgba(34, 197, 94, 0.3)',
+      boxShadow: '0 4px 16px rgba(239, 68, 68, 0.3)',
     }),
   },
   topBar: {
