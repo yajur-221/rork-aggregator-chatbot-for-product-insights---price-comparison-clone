@@ -141,6 +141,21 @@ export default function PriceComparisonHome() {
         boxShadow: '0 0 150px rgba(59, 130, 246, 0.4), inset 0 0 100px rgba(59, 130, 246, 0.1)',
       }),
     },
+    earthGlassRim: {
+      position: 'absolute' as const,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      borderRadius: screenHeight * 0.4,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.3)',
+      ...(Platform.OS === 'web' && {
+        boxShadow: '0 0 20px rgba(255, 255, 255, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.6)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+      }),
+    },
     gradientStart: { x: 0, y: 0 } as const,
     gradientEnd: { x: 1, y: 1 } as const,
     earthGradientStart: { x: 0, y: 0 } as const,
@@ -169,6 +184,8 @@ export default function PriceComparisonHome() {
         />
         {/* Blue Glow */}
         <View style={dynamicStyles.earthGlow} />
+        {/* Glass Effect Rim */}
+        <View style={dynamicStyles.earthGlassRim} />
       </View>
       
       <SafeAreaView style={styles.content}>
