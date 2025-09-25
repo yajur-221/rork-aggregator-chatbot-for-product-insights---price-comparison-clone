@@ -352,13 +352,13 @@ const styles = StyleSheet.create({
   galleryButton: {
     padding: 10,
     borderRadius: 12,
-    backgroundColor: 'rgba(168, 85, 247, 0.8)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(196, 125, 255, 0.5)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     ...(Platform.OS === 'web' && {
-      backdropFilter: 'blur(10px)',
-      WebkitBackdropFilter: 'blur(10px)',
-      boxShadow: '0 4px 16px rgba(168, 85, 247, 0.3)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      boxShadow: '0 4px 16px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
     }),
   },
   searchButton: {
@@ -368,13 +368,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: 'rgba(59, 130, 246, 0.8)',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderWidth: 1,
-    borderColor: 'rgba(96, 165, 250, 0.5)',
+    borderColor: 'rgba(255, 255, 255, 0.25)',
     ...(Platform.OS === 'web' && {
-      backdropFilter: 'blur(10px)',
-      WebkitBackdropFilter: 'blur(10px)',
-      boxShadow: '0 4px 16px rgba(59, 130, 246, 0.3)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      boxShadow: '0 4px 16px rgba(255, 255, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
     }),
   },
   searchButtonText: {
@@ -385,13 +385,13 @@ const styles = StyleSheet.create({
   cameraButton: {
     padding: 10,
     borderRadius: 12,
-    backgroundColor: 'rgba(239, 68, 68, 0.8)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(248, 113, 113, 0.5)',
+    borderColor: 'rgba(255, 255, 255, 0.2)',
     ...(Platform.OS === 'web' && {
-      backdropFilter: 'blur(10px)',
-      WebkitBackdropFilter: 'blur(10px)',
-      boxShadow: '0 4px 16px rgba(239, 68, 68, 0.3)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      boxShadow: '0 4px 16px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
     }),
   },
   topBar: {
