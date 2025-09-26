@@ -128,15 +128,37 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
     console.log('⚠️ Railway backend failed:', error);
   }
   
-  // PRIORITY 2: Try tRPC backend scraper
+  // PRIORITY 2: Try tRPC backend scraper (skip if backend not available)
   try {
     console.log('🔧 Attempting tRPC backend scraper...');
+    
+    // Check if backend is available by testing the base URL
+    const baseUrl = process.env.EXPO_PUBLIC_RORK_API_BASE_URL || 'http://localhost:3000';
+    
+    // Create timeout controller
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    
+    const healthCheck = await fetch(`${baseUrl}/api`, { 
+      method: 'GET',
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!healthCheck.ok) {
+      throw new Error('Backend health check failed');
+    }
+    
     const { trpcClient } = await import('@/lib/trpc');
+    console.log('🔧 tRPC client imported successfully');
     
     const backendResult = await trpcClient.scraper.scrape.query({
       query: sanitizedQuery,
       platforms: undefined
     });
+    
+    console.log('🔧 tRPC query result:', backendResult);
     
     if (backendResult.success && backendResult.products.length > 0) {
       console.log('✅ tRPC backend successful:', {
@@ -167,7 +189,7 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
       return backendItems.sort((a, b) => a.price - b.price);
     }
   } catch (error) {
-    console.log('⚠️ tRPC backend failed:', error);
+    console.log('⚠️ tRPC backend not available, skipping:', error instanceof Error ? error.message : 'Unknown error');
   }
   
   // PRIORITY 3: Try Python scraper
