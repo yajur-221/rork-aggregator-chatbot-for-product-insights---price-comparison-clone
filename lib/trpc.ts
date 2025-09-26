@@ -15,9 +15,9 @@ const getBaseUrl = () => {
     return 'http://localhost:3000';
   }
 
-  throw new Error(
-    "No base url found, please set EXPO_PUBLIC_RORK_API_BASE_URL"
-  );
+  // Return a default URL instead of throwing an error
+  console.warn('No base URL found, using default localhost');
+  return 'http://localhost:3000';
 };
 
 const trpcClientInstance = trpc.createClient({

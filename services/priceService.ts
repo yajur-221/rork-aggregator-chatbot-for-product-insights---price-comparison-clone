@@ -135,61 +135,80 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
     // Check if backend is available by testing the base URL
     const baseUrl = process.env.EXPO_PUBLIC_RORK_API_BASE_URL || 'http://localhost:3000';
     
-    // Create timeout controller
+    // Create timeout controller with shorter timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
     
-    const healthCheck = await fetch(`${baseUrl}/api`, { 
-      method: 'GET',
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (!healthCheck.ok) {
-      throw new Error('Backend health check failed');
-    }
-    
-    const { trpcClient } = await import('@/lib/trpc');
-    console.log('🔧 tRPC client imported successfully');
-    
-    const backendResult = await trpcClient.scraper.scrape.query({
-      query: sanitizedQuery,
-      platforms: undefined
-    });
-    
-    console.log('🔧 tRPC query result:', backendResult);
-    
-    if (backendResult.success && backendResult.products.length > 0) {
-      console.log('✅ tRPC backend successful:', {
-        totalProducts: backendResult.totalResults,
-        cheapestPrice: `₹${backendResult.products[0]?.price}`
+    try {
+      const healthCheck = await fetch(`${baseUrl}/api`, { 
+        method: 'GET',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
       
-      const backendItems: PriceItem[] = backendResult.products.map((product: any) => ({
-        id: product.id,
-        name: product.title,
-        price: product.price,
-        originalPrice: product.originalPrice,
-        image: product.image,
-        source: product.platform,
-        sourceType: 'online' as const,
-        link: product.url,
-        stockStatus: product.availability,
-        deliveryTime: product.delivery,
-        rating: product.rating,
-        reviewCount: product.reviews
-      }));
+      clearTimeout(timeoutId);
       
-      if (location) {
-        const localStores = generateLocalStores(sanitizedQuery, location, backendItems[0]?.price || 1000);
-        backendItems.push(...localStores);
+      if (!healthCheck.ok) {
+        throw new Error(`Backend health check failed with status: ${healthCheck.status}`);
       }
       
-      return backendItems.sort((a, b) => a.price - b.price);
+      const { trpcClient } = await import('@/lib/trpc');
+      console.log('🔧 tRPC client imported successfully');
+      
+      // Add timeout to tRPC query as well
+      const queryController = new AbortController();
+      const queryTimeoutId = setTimeout(() => queryController.abort(), 5000);
+      
+      const backendResult = await trpcClient.scraper.scrape.query({
+        query: sanitizedQuery,
+        platforms: undefined
+      });
+      
+      clearTimeout(queryTimeoutId);
+      console.log('🔧 tRPC query result:', backendResult);
+      
+      if (backendResult.success && backendResult.products.length > 0) {
+        console.log('✅ tRPC backend successful:', {
+          totalProducts: backendResult.totalResults,
+          cheapestPrice: `₹${backendResult.products[0]?.price}`
+        });
+        
+        const backendItems: PriceItem[] = backendResult.products.map((product: any) => ({
+          id: product.id,
+          name: product.title,
+          price: product.price,
+          originalPrice: product.originalPrice,
+          image: product.image,
+          source: product.platform,
+          sourceType: 'online' as const,
+          link: product.url,
+          stockStatus: product.availability,
+          deliveryTime: product.delivery,
+          rating: product.rating,
+          reviewCount: product.reviews
+        }));
+        
+        if (location) {
+          const localStores = generateLocalStores(sanitizedQuery, location, backendItems[0]?.price || 1000);
+          backendItems.push(...localStores);
+        }
+        
+        return backendItems.sort((a, b) => a.price - b.price);
+      }
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      throw fetchError;
     }
   } catch (error) {
-    console.log('⚠️ tRPC backend not available, skipping:', error instanceof Error ? error.message : 'Unknown error');
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.log('⚠️ tRPC backend not available, skipping:', errorMessage);
+    
+    // If it's a network error, log more details
+    if (errorMessage.includes('fetch') || errorMessage.includes('network') || errorMessage.includes('timeout')) {
+      console.log('🔧 Backend appears to be offline or unreachable');
+    }
   }
   
   // PRIORITY 3: Try Python scraper
