@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-Clean Multi-Platform Price Scraper - No Hardcoded Prices
-Only returns actual scraped data from real platforms
+Fixed Multi-Platform Price Scraper with Better Category Detection
 """
 
 import os
@@ -12,7 +11,7 @@ import json
 import time
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
 
 app = Flask(__name__)
@@ -25,7 +24,7 @@ logger = logging.getLogger(__name__)
 # Get ScraperAPI key from environment variable
 SCRAPER_API_KEY = os.environ.get('SCRAPER_API_KEY', '')
 
-print(f"🚀 Starting Clean Multi-Platform Price Scraper")
+print(f"🚀 Starting Fixed Multi-Platform Price Scraper")
 print(f"🔑 ScraperAPI: {'Configured ✅' if SCRAPER_API_KEY else 'Not configured ❌'}")
 
 # ===== PLATFORM CONFIGURATIONS =====
@@ -48,11 +47,59 @@ PLATFORM_CONFIGS = {
         'base_url': 'https://www.flipkart.com',
         'search_url': 'https://www.flipkart.com/search?q={query}',
         'selectors': {
-            'container': 'div._1AtVbE',
-            'title': ['div._4rR01T', 'a.s1Q9rs', 'div._2WkVRV'],
-            'price': ['div._30jeq3', 'div._1_WHN1', 'div._3I9_wc'],
-            'link': 'a._1fQZEK',
-            'image': 'img._396cs4'
+            'container': ['div._1AtVbE', 'div._13oc-S', 'div._2kHMtA'],
+            'title': ['div._4rR01T', 'a.s1Q9rs', 'a.IRpwTa', 'div._2WkVRV'],
+            'price': ['div._30jeq3', 'div._1_WHN1', 'div._3I9_wc', 'div._25b18c'],
+            'link': ['a._1fQZEK', 'a.s1Q9rs', 'a.IRpwTa'],
+            'image': ['img._396cs4', 'img._2r_T1I']
+        }
+    },
+    'myntra': {
+        'name': 'Myntra',
+        'base_url': 'https://www.myntra.com',
+        'search_url': 'https://www.myntra.com/{query}',
+        'selectors': {
+            'container': 'li.product-base',
+            'title': ['h3.product-brand', 'h4.product-product', 'div.product-productMetaInfo'],
+            'price': ['span.product-discountedPrice', 'div.product-price'],
+            'link': 'a',
+            'image': 'img.img-responsive'
+        }
+    },
+    'ajio': {
+        'name': 'Ajio',
+        'base_url': 'https://www.ajio.com',
+        'search_url': 'https://www.ajio.com/search/?text={query}',
+        'selectors': {
+            'container': 'div.item',
+            'title': ['div.nameCls', 'div.brand'],
+            'price': ['span.price', 'div.price'],
+            'link': 'a',
+            'image': 'img'
+        }
+    },
+    'croma': {
+        'name': 'Croma',
+        'base_url': 'https://www.croma.com',
+        'search_url': 'https://www.croma.com/searchB?q={query}',
+        'selectors': {
+            'container': ['li.product-item', 'div.product-tile', 'div.cp-product'],
+            'title': ['h3.product-title', 'a.product-title', 'h3'],
+            'price': ['span.amount', 'span.new-price', 'span.pdpPrice'],
+            'link': ['a.product-title', 'a'],
+            'image': ['img.product-img', 'img']
+        }
+    },
+    'reliance_digital': {
+        'name': 'Reliance Digital',
+        'base_url': 'https://www.reliancedigital.in',
+        'search_url': 'https://www.reliancedigital.in/search?q={query}',
+        'selectors': {
+            'container': ['div.sp', 'li[id*="productItem"]'],
+            'title': ['p.sp__name', 'div.sp__name'],
+            'price': ['span.TextWeb__Text', 'span.pdp__offerPrice', 'span[class*="price"]'],
+            'link': 'a',
+            'image': ['img.sp__image', 'img']
         }
     },
     'swiggy_instamart': {
@@ -81,19 +128,6 @@ PLATFORM_CONFIGS = {
         },
         'requires_js': True
     },
-    'zepto': {
-        'name': 'Zepto',
-        'base_url': 'https://www.zp.delivery',
-        'search_url': 'https://www.zp.delivery/search?query={query}',
-        'selectors': {
-            'container': 'div[data-testid="product-card"]',
-            'title': ['h3', 'p.font-semibold'],
-            'price': ['h4', 'p.text-gray-900'],
-            'link': None,
-            'image': 'img'
-        },
-        'requires_js': True
-    },
     'bigbasket': {
         'name': 'BigBasket',
         'base_url': 'https://www.bigbasket.com',
@@ -105,94 +139,80 @@ PLATFORM_CONFIGS = {
             'link': 'a',
             'image': 'img'
         }
-    },
-    'croma': {
-        'name': 'Croma',
-        'base_url': 'https://www.croma.com',
-        'search_url': 'https://www.croma.com/searchB?q={query}',
-        'selectors': {
-            'container': ['li.product-item', 'div.product-tile'],
-            'title': ['h3.product-title', 'a.product-title'],
-            'price': ['span.amount', 'span.new-price'],
-            'link': 'a.product-title',
-            'image': 'img.product-img'
-        }
-    },
-    'vijay_sales': {
-        'name': 'Vijay Sales',
-        'base_url': 'https://www.vijaysales.com',
-        'search_url': 'https://www.vijaysales.com/search/{query}',
-        'selectors': {
-            'container': 'div.product-thumb',
-            'title': ['h2 a', 'div.product-name'],
-            'price': ['span.price', 'div.product-price'],
-            'link': 'a',
-            'image': 'img'
-        }
-    },
-    'reliance_digital': {
-        'name': 'Reliance Digital',
-        'base_url': 'https://www.reliancedigital.in',
-        'search_url': 'https://www.reliancedigital.in/search?q={query}',
-        'selectors': {
-            'container': 'div.sp',
-            'title': ['p.sp__name', 'div.RIL-product-list__product_name'],
-            'price': ['span.TextWeb__Text', 'span.RIL-product-list__price'],
-            'link': 'a',
-            'image': 'img.sp__image'
-        }
-    },
-    'myntra': {
-        'name': 'Myntra',
-        'base_url': 'https://www.myntra.com',
-        'search_url': 'https://www.myntra.com/{query}',
-        'selectors': {
-            'container': 'li.product-base',
-            'title': ['h3.product-brand', 'h4.product-product'],
-            'price': ['span.product-discountedPrice', 'div.product-price'],
-            'link': 'a',
-            'image': 'img.img-responsive'
-        }
     }
 }
 
-# ===== CATEGORY DETECTION =====
+# ===== IMPROVED CATEGORY DETECTION =====
+
+def clean_query_for_detection(query: str) -> str:
+    """Remove price-related words before category detection"""
+    # Words to remove that interfere with category detection
+    remove_words = ['price', 'prices', 'cost', 'cheap', 'cheapest', 'find', 'search', 'buy', 'get']
+    
+    words = query.lower().split()
+    cleaned_words = [w for w in words if w not in remove_words]
+    return ' '.join(cleaned_words)
 
 def detect_product_category(query: str) -> str:
-    """Detect product category to select relevant platforms"""
-    query_lower = query.lower()
+    """Improved category detection"""
+    # Clean the query first
+    cleaned_query = clean_query_for_detection(query)
+    query_lower = cleaned_query.lower()
     
-    # Grocery items
+    logger.info(f"Category detection - Original: '{query}', Cleaned: '{cleaned_query}'")
+    
+    # Fashion/Footwear keywords (CHECK FIRST for shoes/clothing)
+    fashion_keywords = [
+        # Footwear
+        'shoes', 'shoe', 'sneakers', 'sneaker', 'boots', 'boot', 'sandals', 'sandal',
+        'slippers', 'slipper', 'heels', 'footwear', 'loafers', 'loafer',
+        # Nike specific
+        'nike', 'air max', 'air jordan', 'airmax', 'jordans',
+        # Adidas specific
+        'adidas', 'ultraboost', 'yeezy', 'stan smith',
+        # Other brands
+        'puma', 'reebok', 'converse', 'vans', 'new balance',
+        # Clothing
+        'shirt', 'tshirt', 't-shirt', 'jeans', 'pants', 'trousers', 'shorts',
+        'dress', 'skirt', 'top', 'jacket', 'hoodie', 'sweater', 'blazer',
+        'saree', 'kurta', 'kurti', 'lehenga', 'salwar', 'ethnic',
+        'clothing', 'fashion', 'apparel', 'wear', 'outfit'
+    ]
+    
+    # Electronics keywords
+    electronics_keywords = [
+        'phone', 'mobile', 'iphone', 'samsung', 'oneplus', 'xiaomi', 'realme',
+        'laptop', 'computer', 'macbook', 'dell', 'hp', 'lenovo', 'asus',
+        'tablet', 'ipad', 'kindle',
+        'tv', 'television', 'smart tv', 'led', 'oled',
+        'headphones', 'earphones', 'airpods', 'earbuds', 'speaker', 'soundbar',
+        'camera', 'dslr', 'webcam', 'gopro',
+        'watch', 'smartwatch', 'fitness band',
+        'refrigerator', 'fridge', 'washing machine', 'ac', 'air conditioner',
+        'playstation', 'xbox', 'gaming', 'console',
+        'keyboard', 'mouse', 'monitor', 'printer',
+        'electronics', 'gadget', 'appliance'
+    ]
+    
+    # Grocery keywords
     grocery_keywords = [
         'milk', 'bread', 'rice', 'dal', 'atta', 'flour', 'oil', 'ghee',
         'sugar', 'salt', 'spices', 'masala', 'tea', 'coffee',
         'fruits', 'vegetables', 'apple', 'banana', 'orange', 'onion', 'potato', 'tomato',
         'eggs', 'butter', 'cheese', 'paneer', 'yogurt', 'curd',
         'biscuits', 'cookies', 'chips', 'snacks', 'chocolate',
-        'grocery', 'food', 'beverages'
+        'grocery', 'food', 'beverages', 'juice', 'water'
     ]
     
-    # Electronics
-    electronics_keywords = [
-        'phone', 'mobile', 'iphone', 'samsung', 'oneplus', 'laptop', 'macbook',
-        'tablet', 'ipad', 'tv', 'television', 'camera', 'headphones', 'earphones',
-        'watch', 'smartwatch', 'refrigerator', 'washing machine', 'ac',
-        'playstation', 'xbox', 'electronics', 'gadget'
-    ]
-    
-    # Fashion
-    fashion_keywords = [
-        'shirt', 'tshirt', 'jeans', 'pants', 'dress', 'shoes', 'sandals',
-        'saree', 'kurta', 'jacket', 'clothing', 'fashion', 'wear'
-    ]
-    
-    if any(keyword in query_lower for keyword in grocery_keywords):
-        return 'grocery'
+    # Check categories in order of specificity
+    if any(keyword in query_lower for keyword in fashion_keywords):
+        return 'fashion'
     elif any(keyword in query_lower for keyword in electronics_keywords):
         return 'electronics'
-    elif any(keyword in query_lower for keyword in fashion_keywords):
-        return 'fashion'
+    elif any(keyword in query_lower for keyword in grocery_keywords):
+        return 'grocery'
     else:
+        # Default to general (which includes fashion platforms for broader coverage)
         return 'general'
 
 def get_relevant_platforms(query: str) -> list:
@@ -201,10 +221,10 @@ def get_relevant_platforms(query: str) -> list:
     logger.info(f"Detected category: {category} for query: {query}")
     
     platform_mapping = {
-        'grocery': ['amazon', 'flipkart', 'swiggy_instamart', 'blinkit', 'zepto', 'bigbasket'],
-        'electronics': ['amazon', 'flipkart', 'croma', 'vijay_sales', 'reliance_digital'],
-        'fashion': ['amazon', 'flipkart', 'myntra'],
-        'general': ['amazon', 'flipkart']
+        'grocery': ['amazon', 'flipkart', 'bigbasket', 'swiggy_instamart', 'blinkit'],
+        'electronics': ['amazon', 'flipkart', 'croma', 'reliance_digital'],
+        'fashion': ['amazon', 'flipkart', 'myntra', 'ajio'],
+        'general': ['amazon', 'flipkart', 'myntra']  # Include fashion sites for general
     }
     
     platforms = platform_mapping.get(category, ['amazon', 'flipkart'])
@@ -303,7 +323,11 @@ def scrape_platform(platform_key: str, query: str) -> list:
             container_selectors = config['selectors']['container']
             if isinstance(container_selectors, list):
                 for selector in container_selectors:
-                    containers.extend(soup.select(selector)[:10])
+                    found = soup.select(selector)[:10]
+                    if found:
+                        containers.extend(found)
+                        logger.info(f"Found {len(found)} containers with selector: {selector}")
+                        break  # Use first selector that works
             else:
                 containers = soup.select(container_selectors)[:10]
             
@@ -370,17 +394,20 @@ def scrape_all_platforms(query: str, platforms: list = None) -> list:
     all_results = []
     
     # Use ThreadPoolExecutor for parallel scraping
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        futures = {
+    with ThreadPoolExecutor(max_workers=min(len(platforms), 5)) as executor:
+        # Submit all scraping tasks
+        future_to_platform = {
             executor.submit(scrape_platform, platform, query): platform 
             for platform in platforms
         }
         
-        for future in futures:
-            platform = futures[future]
+        # Collect results as they complete
+        for future in as_completed(future_to_platform):
+            platform = future_to_platform[future]
             try:
                 results = future.result(timeout=20)
                 all_results.extend(results)
+                logger.info(f"Collected {len(results)} results from {platform}")
             except Exception as e:
                 logger.error(f"Platform {platform} scraping failed: {e}")
     
@@ -392,8 +419,8 @@ def scrape_all_platforms(query: str, platforms: list = None) -> list:
 def home():
     return jsonify({
         'status': 'active',
-        'service': 'Clean Multi-Platform Price Scraper',
-        'version': '4.0.0',
+        'service': 'Fixed Multi-Platform Price Scraper',
+        'version': '5.0.0',
         'scraper_api': 'enabled' if SCRAPER_API_KEY else 'disabled',
         'supported_platforms': list(PLATFORM_CONFIGS.keys()),
         'endpoints': {
@@ -451,7 +478,7 @@ def scrape_prices_endpoint():
         # Sort by price
         products.sort(key=lambda x: x['price'])
         
-        # Prepare response - NO MOCK DATA
+        # Prepare response
         response_data = {
             'success': len(products) > 0,
             'products': products,
@@ -489,7 +516,7 @@ def query_price_endpoint():
     
     # Extract product name
     words = query.lower().split()
-    remove_words = ['find', 'search', 'price', 'cost', 'cheap', 'cheapest', 'for', 'of', 'what', 'is', 'the']
+    remove_words = ['find', 'search', 'price', 'prices', 'cost', 'cheap', 'cheapest', 'for', 'of', 'what', 'is', 'the']
     product_words = [w for w in words if w not in remove_words]
     product_name = ' '.join(product_words).strip()
     
@@ -507,15 +534,15 @@ def query_price_endpoint():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
     print(f"""
-    🚀 Clean Multi-Platform Price Scraper v4.0
+    🚀 Fixed Multi-Platform Price Scraper v5.0
     📍 Port: {port}
     🔑 ScraperAPI: {'Configured ✅' if SCRAPER_API_KEY else 'Not configured ❌'}
-    ⚠️  NO HARDCODED PRICES - Only real scraped data
     
     📋 Supported Platforms:
-    {', '.join(PLATFORM_CONFIGS.keys())}
+    • Fashion: Amazon, Flipkart, Myntra, Ajio
+    • Electronics: Amazon, Flipkart, Croma, Reliance Digital
+    • Grocery: Amazon, Flipkart, BigBasket, Swiggy Instamart, Blinkit
     
-    To test:
-    curl -X POST http://localhost:{port}/scrape/prices/ -H 'Content-Type: application/json' -d '{{"product_name": "milk"}}'
+    Category Detection Fixed ✅
     """)
     app.run(host='0.0.0.0', port=port, debug=False)
