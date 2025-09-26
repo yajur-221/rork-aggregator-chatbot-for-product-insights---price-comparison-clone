@@ -1,7 +1,4 @@
-import { handlePriceQuery, getEnhancedPriceData } from './realPriceScraper';
 import { smartScrapeProducts } from './smartScraper';
-import type { ScrapingResult } from './smartScraper';
-import { categorizeProduct } from './productCategorizer';
 import { fetchPricesWithPythonScraper } from './pythonScraper';
 import type { LocationData } from './pythonScraper';
 
@@ -23,31 +20,12 @@ interface PriceItem {
   reviewCount?: number;
 }
 
-function generateValidLink(platformName: string, query: string): string {
-  const encodedQuery = encodeURIComponent(query);
-  const platform = platformName.toLowerCase();
-  
-  const platformUrls: Record<string, string> = {
-    'amazon': `https://www.amazon.in/s?k=${encodedQuery}`,
-    'amazon india': `https://www.amazon.in/s?k=${encodedQuery}`,
-    'flipkart': `https://www.flipkart.com/search?q=${encodedQuery}`,
-    'snapdeal': `https://www.snapdeal.com/search?keyword=${encodedQuery}`,
-    'croma': `https://www.croma.com/search?q=${encodedQuery}`,
-    'myntra': `https://www.myntra.com/${encodedQuery}?rawQuery=${encodedQuery}`,
-    'ajio': `https://www.ajio.com/search/?text=${encodedQuery}`,
-    'vijay sales': `https://www.vijaysales.com/search?search=${encodedQuery}`,
-    'reliance digital': `https://www.reliancedigital.in/search?q=${encodedQuery}`,
-    'swiggy instamart': `https://www.swiggy.com/instamart/search?query=${encodedQuery}`,
-    'blinkit': `https://blinkit.com/search?q=${encodedQuery}`,
-    'zepto': `https://www.zepto.com/search?query=${encodedQuery}`,
-    'bigbasket': `https://www.bigbasket.com/ps/?q=${encodedQuery}`,
-    'jiomart': `https://www.jiomart.com/search/${encodedQuery}`,
-  };
-  
-  return platformUrls[platform] || `https://www.google.com/search?q=${encodedQuery}+buy+online+india`;
-}
+
 
 function generateLocalStores(query: string, location: LocationData & { city?: string; state?: string }, basePrice: number): PriceItem[] {
+  if (!query.trim() || query.length > 100) return [];
+  const sanitizedQuery = query.trim();
+  
   const localStoreNames = [
     'Tech World Electronics',
     'Digital Plaza', 
@@ -62,7 +40,7 @@ function generateLocalStores(query: string, location: LocationData & { city?: st
     
     return {
       id: `local-${index + 1}`,
-      name: `${query} - Local Store`,
+      name: `${sanitizedQuery} - Local Store`,
       price: localPrice,
       originalPrice: basePrice,
       image: `https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=200&h=200&fit=crop`,
@@ -80,55 +58,15 @@ function generateLocalStores(query: string, location: LocationData & { city?: st
 }
 
 export async function fetchPriceComparison(query: string, location: (LocationData & { city?: string; state?: string }) | null): Promise<PriceItem[]> {
-  console.log('🔍 Starting price comparison for:', query);
-  
-  if (!query?.trim()) {
+  if (!query?.trim() || query.length > 500) {
     console.error('Invalid query provided');
     return [];
   }
 
   const sanitizedQuery = query.trim();
+  console.log('🔍 Starting price comparison for:', sanitizedQuery);
   
-  // PRIORITY 1: Try Railway backend with ScraperAPI first
-  try {
-    console.log('🚀 Attempting Railway backend with ScraperAPI...');
-    const priceResult = await handlePriceQuery(sanitizedQuery);
-    
-    if (priceResult.success && priceResult.data) {
-      console.log('✅ Railway backend successful:', {
-        product: priceResult.data.product_searched,
-        totalResults: priceResult.data.total_results,
-        cheapestPrice: `₹${priceResult.data.cheapest.price}`
-      });
-      
-      const items: PriceItem[] = priceResult.data.all_prices.map((item, index) => ({
-        id: `backend-${index + 1}`,
-        name: item.title,
-        price: item.price,
-        originalPrice: undefined,
-        image: `https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200&h=200&fit=crop`,
-        source: item.platform,
-        sourceType: 'online' as const,
-        link: item.url,
-        stockStatus: 'In Stock',
-        deliveryTime: '2-3 days',
-        rating: Math.round((Math.random() * 1.5 + 3.5) * 10) / 10,
-        reviewCount: Math.floor(Math.random() * 5000) + 100
-      }));
-      
-      // Add local stores if location is available
-      if (location) {
-        const localStores = generateLocalStores(sanitizedQuery, location, items[0]?.price || 1000);
-        items.push(...localStores);
-      }
-      
-      return items.sort((a, b) => a.price - b.price);
-    }
-  } catch (error) {
-    console.log('⚠️ Railway backend failed:', error);
-  }
-  
-  // PRIORITY 2: Try tRPC backend scraper
+  // PRIORITY 1: Try tRPC backend scraper
   try {
     console.log('🔧 Attempting tRPC backend scraper...');
     const { trpcClient } = await import('@/lib/trpc');
@@ -223,7 +161,7 @@ export async function fetchPriceComparison(query: string, location: (LocationDat
       return scrapedItems.sort((a, b) => a.price - b.price);
     }
   } catch (error) {
-    console.log('❌ All scraping methods failed');
+    console.log('❌ All scraping methods failed:', error);
   }
   
   return [];
