@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """
-Enhanced Multi-Platform Price Scraper with Multiple Strategies
-Supports: Amazon, Flipkart, Croma, Myntra, Ajio, BigBasket, and more
+Intelligent Product Price Scraper
+- Automatically detects product category (electronics, grocery, fashion)
+- Searches only relevant platforms
+- Shows EXACT products only (smart filtering)
+- Works with both e-commerce and quick commerce
 """
 
 import os
@@ -10,210 +13,172 @@ from bs4 import BeautifulSoup
 import re
 import json
 import time
-import random
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 import logging
-from datetime import datetime
-from functools import lru_cache
-import hashlib
+from difflib import SequenceMatcher
 
 app = Flask(__name__)
 CORS(app)
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Multiple scraping service keys for redundancy
-SCRAPER_SERVICES = {
-    'scraperapi': os.environ.get('SCRAPER_API_KEY', ''),
-    'scrapingbee': os.environ.get('SCRAPINGBEE_API_KEY', ''),
-    'brightdata': os.environ.get('BRIGHTDATA_API_KEY', ''),
+SCRAPER_API_KEY = os.environ.get('SCRAPER_API_KEY', '')
+
+# ===== SMART PRODUCT CATEGORIZER =====
+
+CATEGORY_KEYWORDS = {
+    'electronics': [
+        'phone', 'mobile', 'smartphone', 'iphone', 'samsung', 'galaxy', 'oneplus', 'xiaomi',
+        'laptop', 'macbook', 'computer', 'dell', 'hp', 'lenovo', 'asus',
+        'tv', 'television', 'led', 'smart tv', 'sony', 'lg',
+        'headphones', 'earphones', 'airpods', 'earbuds', 'speaker', 'jbl', 'boat',
+        'camera', 'dslr', 'canon', 'nikon',
+        'tablet', 'ipad', 'kindle',
+        'smartwatch', 'watch', 'fitness band',
+        'charger', 'power bank', 'cable',
+        'gaming', 'playstation', 'xbox', 'console',
+        'processor', 'gpu', 'ram', 'ssd'
+    ],
+    'grocery': [
+        'milk', 'bread', 'butter', 'cheese', 'yogurt', 'paneer',
+        'rice', 'wheat', 'atta', 'flour', 'dal', 'lentils',
+        'oil', 'ghee', 'cooking oil', 'olive oil',
+        'sugar', 'salt', 'spices', 'masala', 'turmeric', 'chili',
+        'tea', 'coffee', 'juice', 'water', 'beverages',
+        'biscuits', 'cookies', 'chips', 'snacks', 'chocolate',
+        'fruits', 'apple', 'banana', 'orange', 'mango', 'grapes',
+        'vegetables', 'onion', 'potato', 'tomato', 'carrot',
+        'eggs', 'chicken', 'meat', 'fish',
+        'almonds', 'cashews', 'walnuts', 'nuts', 'dry fruits', 'raisins', 'dates',
+        'pasta', 'noodles', 'cereals',
+        'sauce', 'ketchup', 'mayonnaise', 'jam', 'honey'
+    ],
+    'fashion': [
+        'shirt', 't-shirt', 'tshirt', 'top', 'blouse',
+        'jeans', 'pants', 'trousers', 'shorts',
+        'dress', 'skirt', 'saree', 'kurta', 'kurti',
+        'shoes', 'sneakers', 'sandals', 'boots', 'footwear',
+        'bag', 'backpack', 'handbag', 'wallet',
+        'jacket', 'coat', 'sweater', 'hoodie',
+        'watch', 'sunglasses', 'belt', 'cap', 'hat',
+        'nike', 'adidas', 'puma', 'reebok',
+        'levis', 'zara', 'h&m', 'uniqlo'
+    ]
 }
 
-# Simple in-memory cache (use Redis in production)
-CACHE = {}
-CACHE_TTL = 3600  # 1 hour
-
-print(f"🚀 Starting Enhanced Price Scraper v3.0")
-print(f"🔑 Services: ScraperAPI={'✅' if SCRAPER_SERVICES['scraperapi'] else '❌'}, "
-      f"ScrapingBee={'✅' if SCRAPER_SERVICES['scrapingbee'] else '❌'}")
-
-# ===== PLATFORM CONFIGURATIONS =====
-
-PLATFORMS = {
-    'amazon': {
-        'name': 'Amazon India',
-        'base_url': 'https://www.amazon.in',
-        'search_url': 'https://www.amazon.in/s?k={query}',
-        'selectors': [
-            {
-                'container': 'div[data-component-type="s-search-result"]',
-                'title': ['h2 a span', 'h2 span.a-text-normal'],
-                'price': ['span.a-price-whole', 'span.a-offscreen'],
-                'image': 'img.s-image',
-                'link': 'h2 a',
-            },
-            {
-                'container': 'div[data-asin][data-index]',
-                'title': ['h2', 'span.a-size-medium'],
-                'price': ['span.a-price', 'span.a-color-price'],
-                'image': 'img',
-                'link': 'a.a-link-normal',
-            }
-        ],
-        'requires_js': False,
-        'priority': 1
-    },
-    'flipkart': {
-        'name': 'Flipkart',
-        'base_url': 'https://www.flipkart.com',
-        'search_url': 'https://www.flipkart.com/search?q={query}',
-        'selectors': [
-            {
-                'container': 'div._1AtVbE',
-                'title': ['div._4rR01T', 'a.s1Q9rs', 'a.IRpwTa'],
-                'price': ['div._30jeq3', 'div._1_WHN1'],
-                'image': ['img._396cs4', 'img._2r_T1I'],
-                'link': ['a._1fQZEK', 'a.IRpwTa'],
-            },
-            {
-                'container': 'div._2kHMtA',
-                'title': ['div._2WkVRV', 'a.s1Q9rs'],
-                'price': ['div._30jeq3'],
-                'image': 'img',
-                'link': 'a',
-            }
-        ],
-        'requires_js': True,
-        'priority': 1
-    },
-    'myntra': {
-        'name': 'Myntra',
-        'base_url': 'https://www.myntra.com',
-        'search_url': 'https://www.myntra.com/{query}',
-        'api_url': 'https://www.myntra.com/gateway/v2/search/{query}',
-        'selectors': [
-            {
-                'container': 'li.product-base',
-                'title': ['h3.product-brand', 'h4.product-product'],
-                'price': ['span.product-discountedPrice'],
-                'image': 'img.img-responsive',
-                'link': 'a',
-            }
-        ],
-        'requires_js': True,
-        'use_api': True,
-        'priority': 2
-    },
-    'croma': {
-        'name': 'Croma',
-        'base_url': 'https://www.croma.com',
-        'search_url': 'https://www.croma.com/searchB?q={query}',
-        'selectors': [
-            {
-                'container': 'li.product-item',
-                'title': ['h3.product-title', 'a.product-title'],
-                'price': ['span.new-price', 'span.amount'],
-                'image': 'img.product-img',
-                'link': 'a.product-title',
-            }
-        ],
-        'requires_js': False,
-        'priority': 2
-    },
-}
-
-# ===== CACHING =====
-
-def get_cache_key(platform, query):
-    """Generate cache key"""
-    key = f"{platform}:{query}"
-    return hashlib.md5(key.encode()).hexdigest()
-
-def get_cached(platform, query):
-    """Get cached results"""
-    key = get_cache_key(platform, query)
-    if key in CACHE:
-        data, timestamp = CACHE[key]
-        if time.time() - timestamp < CACHE_TTL:
-            logger.info(f"Cache hit for {platform}:{query}")
-            return data
-    return None
-
-def set_cache(platform, query, data):
-    """Set cache"""
-    key = get_cache_key(platform, query)
-    CACHE[key] = (data, time.time())
-    logger.info(f"Cached results for {platform}:{query}")
-
-# ===== SCRAPING SERVICES =====
-
-def scrape_with_scraperapi(url, platform_key, query, use_premium=False):
-    """ScraperAPI with enhanced parameters"""
-    if not SCRAPER_SERVICES['scraperapi']:
-        raise Exception("ScraperAPI key not configured")
+def categorize_product(query):
+    """Smart product categorization"""
+    query_lower = query.lower().strip()
     
-    config = PLATFORMS[platform_key]
+    scores = {category: 0 for category in CATEGORY_KEYWORDS}
     
-    params = {
-        'api_key': SCRAPER_SERVICES['scraperapi'],
-        'url': url,
-        'country_code': 'in',
-        'device_type': 'desktop',
+    for category, keywords in CATEGORY_KEYWORDS.items():
+        for keyword in keywords:
+            if keyword in query_lower:
+                # Exact word match gets higher score
+                if keyword in query_lower.split():
+                    scores[category] += 10
+                else:
+                    scores[category] += 5
+    
+    if max(scores.values()) > 0:
+        category = max(scores, key=scores.get)
+        logger.info(f"📂 Categorized '{query}' as: {category} (score: {scores[category]})")
+        return category
+    
+    logger.info(f"📂 Categorized '{query}' as: general")
+    return 'general'
+
+# ===== PLATFORM SELECTION =====
+
+def get_platforms_for_category(category):
+    """Select platforms based on category"""
+    platforms = {
+        'electronics': ['amazon', 'flipkart', 'croma'],
+        'grocery': ['amazon', 'bigbasket', 'blinkit', 'swiggy'],
+        'fashion': ['myntra', 'amazon', 'flipkart'],
+        'general': ['amazon', 'flipkart']
     }
     
-    if config.get('requires_js'):
+    selected = platforms.get(category, platforms['general'])
+    logger.info(f"🎯 Selected platforms for {category}: {selected}")
+    return selected
+
+# ===== SMART PRODUCT MATCHING =====
+
+def calculate_similarity(str1, str2):
+    """Calculate similarity between two strings"""
+    return SequenceMatcher(None, str1.lower(), str2.lower()).ratio()
+
+def is_exact_product_match(query, product_title, threshold=0.4):
+    """
+    Smart matching - checks if product title matches the query
+    Returns True only if it's the actual product being searched
+    """
+    query_lower = query.lower().strip()
+    title_lower = product_title.lower().strip()
+    
+    # Extract main keywords from query (ignore common words)
+    stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'with', 'price', 'buy', 'online'}
+    query_words = [w for w in query_lower.split() if w not in stop_words and len(w) > 2]
+    
+    if not query_words:
+        return True  # If no meaningful words, accept
+    
+    # Count how many query words appear in title
+    matches = sum(1 for word in query_words if word in title_lower)
+    match_ratio = matches / len(query_words)
+    
+    # Also check overall similarity
+    similarity = calculate_similarity(query_lower, title_lower)
+    
+    # Product matches if:
+    # 1. Most query words are in title (>60%), OR
+    # 2. High overall similarity (>40%)
+    is_match = match_ratio >= 0.6 or similarity >= threshold
+    
+    if not is_match:
+        logger.debug(f"❌ Rejected: '{product_title[:60]}' (match: {match_ratio:.2f}, sim: {similarity:.2f})")
+    else:
+        logger.debug(f"✅ Accepted: '{product_title[:60]}' (match: {match_ratio:.2f}, sim: {similarity:.2f})")
+    
+    return is_match
+
+# ===== SCRAPING FUNCTIONS =====
+
+def scrape_with_api(url, platform_key, render_js=False):
+    """Scrape using ScraperAPI"""
+    if not SCRAPER_API_KEY:
+        raise Exception("ScraperAPI key not configured")
+    
+    params = {
+        'api_key': SCRAPER_API_KEY,
+        'url': url,
+        'country_code': 'in',
+    }
+    
+    if render_js:
         params['render'] = 'true'
-        params['wait_for_selector'] = config['selectors'][0]['container']
-    
-    if use_premium:
-        params['premium'] = 'true'
-        params['session_number'] = str(hash(query) % 10000)
-    
-    logger.info(f"ScraperAPI request: {platform_key}, JS={params.get('render')}, Premium={use_premium}")
     
     try:
         response = requests.get('http://api.scraperapi.com', params=params, timeout=30)
         response.raise_for_status()
         return response.text
     except Exception as e:
-        logger.error(f"ScraperAPI failed: {e}")
+        logger.error(f"ScraperAPI failed for {platform_key}: {e}")
         raise
 
-def scrape_with_scrapingbee(url, platform_key):
-    """ScrapingBee as fallback"""
-    if not SCRAPER_SERVICES['scrapingbee']:
-        raise Exception("ScrapingBee key not configured")
-    
-    config = PLATFORMS[platform_key]
-    
-    params = {
-        'api_key': SCRAPER_SERVICES['scrapingbee'],
-        'url': url,
-        'country_code': 'in',
-        'render_js': 'true' if config.get('requires_js') else 'false',
-        'wait': '2000' if config.get('requires_js') else '0',
-    }
-    
-    try:
-        response = requests.get('https://app.scrapingbee.com/api/v1/', params=params, timeout=30)
-        response.raise_for_status()
-        return response.text
-    except Exception as e:
-        logger.error(f"ScrapingBee failed: {e}")
-        raise
-
-def scrape_direct(url, platform_key):
-    """Direct scraping as last resort"""
+def scrape_direct(url):
+    """Direct scraping with proper headers"""
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-IN,en;q=0.9',
         'Accept-Encoding': 'gzip, deflate, br',
         'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
     }
     
     try:
@@ -224,256 +189,404 @@ def scrape_direct(url, platform_key):
         logger.error(f"Direct scraping failed: {e}")
         raise
 
-def scrape_with_fallback(url, platform_key, query):
-    """Try multiple scraping methods"""
-    methods = [
-        ('ScraperAPI', lambda: scrape_with_scraperapi(url, platform_key, query)),
-        ('ScraperAPI Premium', lambda: scrape_with_scraperapi(url, platform_key, query, use_premium=True)),
-        ('ScrapingBee', lambda: scrape_with_scrapingbee(url, platform_key)),
-        ('Direct', lambda: scrape_direct(url, platform_key)),
-    ]
+# ===== PLATFORM-SPECIFIC SCRAPERS =====
+
+def scrape_amazon(query):
+    """Scrape Amazon India with smart filtering"""
+    logger.info(f"🔍 Scraping Amazon for: {query}")
     
-    for method_name, method in methods:
-        try:
-            logger.info(f"Trying {method_name} for {platform_key}")
-            html = method()
-            if html and len(html) > 1000:
-                logger.info(f"✅ {method_name} succeeded for {platform_key}")
-                return html
-        except Exception as e:
-            logger.warning(f"❌ {method_name} failed: {e}")
-            continue
-    
-    raise Exception(f"All scraping methods failed for {platform_key}")
-
-# ===== PARSING =====
-
-def try_selectors(container, selectors):
-    """Try multiple selectors"""
-    if isinstance(selectors, list):
-        for selector in selectors:
-            try:
-                elem = container.select_one(selector)
-                if elem:
-                    return elem
-            except:
-                continue
-    else:
-        try:
-            return container.select_one(selectors)
-        except:
-            pass
-    return None
-
-def clean_price(price_text):
-    """Extract numeric price"""
-    if not price_text:
-        return 0
-    price_text = re.sub(r'[^\d.]', '', str(price_text))
-    try:
-        price = float(price_text)
-        if 0 < price < 10000000:
-            return price
-    except:
-        pass
-    return 0
-
-def parse_products(html, platform_key):
-    """Parse products from HTML with multiple selector strategies"""
-    config = PLATFORMS[platform_key]
-    soup = BeautifulSoup(html, 'html.parser')
+    search_url = f"https://www.amazon.in/s?k={query.replace(' ', '+')}"
     products = []
     
-    for selector_set in config['selectors']:
-        containers = soup.select(selector_set['container'])[:15]
+    try:
+        # Try with ScraperAPI first
+        if SCRAPER_API_KEY:
+            html = scrape_with_api(search_url, 'amazon')
+        else:
+            html = scrape_direct(search_url)
         
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Try multiple container selectors
+        containers = soup.select('div[data-component-type="s-search-result"]')
         if not containers:
-            continue
+            containers = soup.select('div[data-asin][data-index]')
         
-        logger.info(f"Found {len(containers)} containers with selector: {selector_set['container']}")
+        logger.info(f"Found {len(containers)} items on Amazon")
         
-        for i, container in enumerate(containers):
+        for container in containers[:20]:  # Check more items
             try:
-                title_elem = try_selectors(container, selector_set['title'])
-                title = title_elem.text.strip()[:200] if title_elem else None
+                # Title
+                title_elem = container.select_one('h2 span') or container.select_one('span.a-text-normal')
+                if not title_elem:
+                    continue
+                title = title_elem.text.strip()
                 
-                price_elem = try_selectors(container, selector_set['price'])
-                price = clean_price(price_elem.text) if price_elem else 0
-                
-                if not title or price <= 0:
+                # Smart filtering - only exact matches
+                if not is_exact_product_match(query, title):
                     continue
                 
-                link_elem = try_selectors(container, selector_set['link'])
-                link = config['base_url']
-                if link_elem and link_elem.get('href'):
-                    href = link_elem['href']
-                    if href.startswith('http'):
-                        link = href
-                    elif href.startswith('/'):
-                        link = config['base_url'] + href
+                # Price
+                price_elem = container.select_one('span.a-price-whole')
+                if not price_elem:
+                    price_elem = container.select_one('span.a-offscreen')
                 
-                img_elem = try_selectors(container, selector_set['image'])
-                image = None
-                if img_elem:
-                    image = img_elem.get('src') or img_elem.get('data-src')
+                if not price_elem:
+                    continue
+                
+                price_text = price_elem.text.replace(',', '').replace('₹', '')
+                price = float(re.sub(r'[^\d.]', '', price_text))
+                
+                if price <= 0:
+                    continue
+                
+                # Link
+                link_elem = container.select_one('h2 a')
+                link = 'https://www.amazon.in' + link_elem['href'] if link_elem else search_url
+                
+                # Image
+                img_elem = container.select_one('img')
+                image = img_elem.get('src', '') if img_elem else ''
                 
                 products.append({
-                    'title': title,
+                    'title': title[:150],
                     'price': price,
                     'url': link,
                     'image': image,
-                    'platform': config['name']
+                    'platform': 'Amazon India'
                 })
                 
-                logger.info(f"✅ Parsed: {title[:50]}... - ₹{price}")
-            
+                logger.info(f"✅ Amazon: {title[:50]}... - ₹{price}")
+                
             except Exception as e:
-                logger.error(f"Error parsing item {i}: {e}")
+                logger.debug(f"Error parsing Amazon item: {e}")
                 continue
         
-        if products:
-            break
+        return products[:10]  # Return top 10
+        
+    except Exception as e:
+        logger.error(f"Amazon scraping failed: {e}")
+        return []
+
+def scrape_flipkart(query):
+    """Scrape Flipkart with smart filtering"""
+    logger.info(f"🔍 Scraping Flipkart for: {query}")
     
-    return products
-
-# ===== MYNTRA API =====
-
-def scrape_myntra_api(query):
-    """Use Myntra's API directly"""
+    search_url = f"https://www.flipkart.com/search?q={query.replace(' ', '%20')}"
+    products = []
+    
     try:
+        # Flipkart requires JS rendering
+        if SCRAPER_API_KEY:
+            html = scrape_with_api(search_url, 'flipkart', render_js=True)
+        else:
+            logger.warning("Flipkart needs ScraperAPI with JS rendering")
+            return []
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Multiple selector strategies
+        containers = soup.select('div._1AtVbE, div._13oc-S, div._2kHMtA')
+        
+        logger.info(f"Found {len(containers)} items on Flipkart")
+        
+        for container in containers[:20]:
+            try:
+                # Title
+                title_elem = (container.select_one('div._4rR01T') or 
+                             container.select_one('a.s1Q9rs') or
+                             container.select_one('div._2WkVRV'))
+                
+                if not title_elem:
+                    continue
+                
+                title = title_elem.text.strip()
+                
+                # Smart filtering
+                if not is_exact_product_match(query, title):
+                    continue
+                
+                # Price
+                price_elem = container.select_one('div._30jeq3')
+                if not price_elem:
+                    continue
+                
+                price_text = price_elem.text.replace(',', '').replace('₹', '')
+                price = float(re.sub(r'[^\d.]', '', price_text))
+                
+                if price <= 0:
+                    continue
+                
+                # Link
+                link_elem = container.select_one('a')
+                link = 'https://www.flipkart.com' + link_elem['href'] if link_elem else search_url
+                
+                # Image
+                img_elem = container.select_one('img')
+                image = img_elem.get('src', '') if img_elem else ''
+                
+                products.append({
+                    'title': title[:150],
+                    'price': price,
+                    'url': link,
+                    'image': image,
+                    'platform': 'Flipkart'
+                })
+                
+                logger.info(f"✅ Flipkart: {title[:50]}... - ₹{price}")
+                
+            except Exception as e:
+                logger.debug(f"Error parsing Flipkart item: {e}")
+                continue
+        
+        return products[:10]
+        
+    except Exception as e:
+        logger.error(f"Flipkart scraping failed: {e}")
+        return []
+
+def scrape_croma(query):
+    """Scrape Croma"""
+    logger.info(f"🔍 Scraping Croma for: {query}")
+    
+    search_url = f"https://www.croma.com/search?q={query.replace(' ', '%20')}"
+    products = []
+    
+    try:
+        if SCRAPER_API_KEY:
+            html = scrape_with_api(search_url, 'croma')
+        else:
+            html = scrape_direct(search_url)
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        containers = soup.select('li.product-item, div.product')
+        
+        logger.info(f"Found {len(containers)} items on Croma")
+        
+        for container in containers[:20]:
+            try:
+                title_elem = container.select_one('h3, a.product-title')
+                if not title_elem:
+                    continue
+                
+                title = title_elem.text.strip()
+                
+                if not is_exact_product_match(query, title):
+                    continue
+                
+                price_elem = container.select_one('span.new-price, span.amount')
+                if not price_elem:
+                    continue
+                
+                price_text = price_elem.text.replace(',', '').replace('₹', '')
+                price = float(re.sub(r'[^\d.]', '', price_text))
+                
+                if price <= 0:
+                    continue
+                
+                link_elem = container.select_one('a')
+                link = 'https://www.croma.com' + link_elem['href'] if link_elem else search_url
+                
+                img_elem = container.select_one('img')
+                image = img_elem.get('src', '') if img_elem else ''
+                
+                products.append({
+                    'title': title[:150],
+                    'price': price,
+                    'url': link,
+                    'image': image,
+                    'platform': 'Croma'
+                })
+                
+                logger.info(f"✅ Croma: {title[:50]}... - ₹{price}")
+                
+            except Exception as e:
+                logger.debug(f"Error parsing Croma item: {e}")
+                continue
+        
+        return products[:10]
+        
+    except Exception as e:
+        logger.error(f"Croma scraping failed: {e}")
+        return []
+
+def scrape_myntra(query):
+    """Scrape Myntra using their API"""
+    logger.info(f"🔍 Scraping Myntra for: {query}")
+    
+    try:
+        # Myntra has an undocumented API
         api_url = f"https://www.myntra.com/gateway/v2/search/{query.replace(' ', '%20')}"
+        
         headers = {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15',
-            'Accept': 'application/json',
+            'User-Agent': 'Myntra/1.0 (iPhone; iOS 14.0)',
+            'Accept': 'application/json'
         }
         
         response = requests.get(api_url, headers=headers, timeout=10)
-        if response.ok:
-            data = response.json()
-            products = []
-            
-            for item in data.get('products', [])[:10]:
-                try:
-                    products.append({
-                        'title': f"{item.get('brand', '')} {item.get('product', '')}",
-                        'price': item.get('price', 0),
-                        'url': f"https://www.myntra.com/{item.get('landingPageUrl', '')}",
-                        'image': item.get('searchImage', ''),
-                        'platform': 'Myntra'
-                    })
-                except:
+        
+        if not response.ok:
+            return []
+        
+        data = response.json()
+        products = []
+        
+        for item in data.get('products', [])[:10]:
+            try:
+                brand = item.get('brand', '')
+                product = item.get('product', '')
+                title = f"{brand} {product}".strip()
+                
+                if not is_exact_product_match(query, title):
                     continue
-            
-            if products:
-                logger.info(f"✅ Myntra API returned {len(products)} products")
-                return products
+                
+                price = item.get('price', 0)
+                if price <= 0:
+                    continue
+                
+                products.append({
+                    'title': title[:150],
+                    'price': price,
+                    'url': f"https://www.myntra.com/{item.get('landingPageUrl', '')}",
+                    'image': item.get('searchImage', ''),
+                    'platform': 'Myntra'
+                })
+                
+                logger.info(f"✅ Myntra: {title[:50]}... - ₹{price}")
+                
+            except Exception as e:
+                logger.debug(f"Error parsing Myntra item: {e}")
+                continue
+        
+        return products
+        
     except Exception as e:
-        logger.error(f"Myntra API failed: {e}")
-    
-    return []
+        logger.error(f"Myntra scraping failed: {e}")
+        return []
 
-# ===== MAIN SCRAPING =====
-
-def scrape_platform(platform_key, query):
-    """Scrape a single platform with caching"""
-    # Check cache first
-    cached = get_cached(platform_key, query)
-    if cached:
-        return cached
+def scrape_bigbasket(query):
+    """Scrape BigBasket for groceries"""
+    logger.info(f"🔍 Scraping BigBasket for: {query}")
     
-    config = PLATFORMS[platform_key]
-    results = []
+    search_url = f"https://www.bigbasket.com/ps/?q={query.replace(' ', '%20')}"
+    products = []
     
     try:
-        logger.info(f"🔍 Scraping {config['name']} for: {query}")
-        
-        # Special case: Myntra API
-        if platform_key == 'myntra' and config.get('use_api'):
-            results = scrape_myntra_api(query)
-            if results:
-                set_cache(platform_key, query, results)
-                return results
-        
-        # Regular scraping
-        search_url = config['search_url'].format(query=query.replace(' ', '+'))
-        
-        # Rate limiting
-        time.sleep(random.uniform(2, 5))
-        
-        # Scrape with fallback
-        html = scrape_with_fallback(search_url, platform_key, query)
-        
-        # Parse
-        results = parse_products(html, platform_key)
-        
-        if results:
-            logger.info(f"✅ {config['name']}: {len(results)} products")
-            set_cache(platform_key, query, results)
+        if SCRAPER_API_KEY:
+            html = scrape_with_api(search_url, 'bigbasket', render_js=True)
         else:
-            logger.warning(f"⚠️ {config['name']}: No products found")
-    
+            return []
+        
+        soup = BeautifulSoup(html, 'html.parser')
+        containers = soup.select('div[qa="product"]')
+        
+        logger.info(f"Found {len(containers)} items on BigBasket")
+        
+        for container in containers[:20]:
+            try:
+                title_elem = container.select_one('h3, a')
+                if not title_elem:
+                    continue
+                
+                title = title_elem.text.strip()
+                
+                if not is_exact_product_match(query, title):
+                    continue
+                
+                price_elem = container.select_one('span[class*="price"]')
+                if not price_elem:
+                    continue
+                
+                price_text = price_elem.text.replace(',', '').replace('₹', '')
+                price = float(re.sub(r'[^\d.]', '', price_text))
+                
+                if price <= 0:
+                    continue
+                
+                products.append({
+                    'title': title[:150],
+                    'price': price,
+                    'url': search_url,
+                    'image': '',
+                    'platform': 'BigBasket'
+                })
+                
+                logger.info(f"✅ BigBasket: {title[:50]}... - ₹{price}")
+                
+            except Exception as e:
+                logger.debug(f"Error parsing BigBasket item: {e}")
+                continue
+        
+        return products[:10]
+        
     except Exception as e:
-        logger.error(f"❌ {config['name']} failed: {e}")
-    
-    return results
+        logger.error(f"BigBasket scraping failed: {e}")
+        return []
 
-def scrape_all_platforms(query, requested_platforms=None):
-    """Scrape all relevant platforms in parallel"""
-    if not requested_platforms:
-        requested_platforms = get_relevant_platforms(query)
+# Platform mapper
+SCRAPERS = {
+    'amazon': scrape_amazon,
+    'flipkart': scrape_flipkart,
+    'croma': scrape_croma,
+    'myntra': scrape_myntra,
+    'bigbasket': scrape_bigbasket,
+}
+
+# ===== MAIN SCRAPING LOGIC =====
+
+def scrape_all(query):
+    """Main function to scrape all relevant platforms"""
+    logger.info(f"\n{'='*60}")
+    logger.info(f"🔍 NEW SEARCH: '{query}'")
+    logger.info(f"{'='*60}\n")
     
-    # Sort by priority
-    sorted_platforms = sorted(
-        requested_platforms,
-        key=lambda p: PLATFORMS.get(p, {}).get('priority', 99)
-    )
+    # Step 1: Categorize product
+    category = categorize_product(query)
     
-    all_results = []
+    # Step 2: Get relevant platforms
+    platforms = get_platforms_for_category(category)
     
-    # Use ThreadPoolExecutor for parallel scraping
+    # Step 3: Scrape platforms in parallel
+    all_products = []
+    
     with ThreadPoolExecutor(max_workers=3) as executor:
         future_to_platform = {
-            executor.submit(scrape_platform, platform, query): platform
-            for platform in sorted_platforms
+            executor.submit(SCRAPERS[platform], query): platform 
+            for platform in platforms if platform in SCRAPERS
         }
         
-        for future in as_completed(future_to_platform):
+        for future in future_to_platform:
             platform = future_to_platform[future]
             try:
-                results = future.result(timeout=40)
-                all_results.extend(results)
+                products = future.result(timeout=40)
+                if products:
+                    all_products.extend(products)
+                    logger.info(f"✅ {platform}: Got {len(products)} products")
+                else:
+                    logger.warning(f"⚠️ {platform}: No products found")
             except Exception as e:
-                logger.error(f"Platform {platform} failed: {e}")
+                logger.error(f"❌ {platform} failed: {e}")
     
-    return all_results
+    # Step 4: Sort by price
+    all_products.sort(key=lambda x: x['price'])
+    
+    logger.info(f"\n📊 TOTAL RESULTS: {len(all_products)} products from {len(set(p['platform'] for p in all_products))} platforms")
+    
+    return all_products, category
 
-def get_relevant_platforms(query):
-    """Determine relevant platforms based on query"""
-    query_lower = query.lower()
-    
-    # Fashion
-    if any(k in query_lower for k in ['shirt', 'jeans', 'dress', 'shoes', 'clothing']):
-        return ['myntra', 'amazon', 'flipkart']
-    
-    # Electronics
-    if any(k in query_lower for k in ['phone', 'laptop', 'tv', 'camera', 'headphone']):
-        return ['amazon', 'flipkart', 'croma']
-    
-    # Default
-    return ['amazon', 'flipkart']
-
-# ===== API ENDPOINTS =====
+# ===== FLASK API =====
 
 @app.route('/')
 def home():
     return jsonify({
         'status': 'active',
-        'version': '3.0',
-        'platforms': list(PLATFORMS.keys()),
-        'services': {
-            'scraperapi': bool(SCRAPER_SERVICES['scraperapi']),
-            'scrapingbee': bool(SCRAPER_SERVICES['scrapingbee']),
-        }
+        'version': 'Smart Scraper v1.0',
+        'features': [
+            'Smart product categorization',
+            'Exact product matching',
+            'Category-aware platform selection',
+            'Parallel scraping'
+        ]
     })
 
 @app.route('/health')
@@ -481,51 +594,64 @@ def health():
     return jsonify({'status': 'healthy', 'timestamp': time.time()})
 
 @app.route('/scrape/prices/', methods=['POST', 'OPTIONS'])
-def scrape_prices():
+def scrape_endpoint():
     if request.method == 'OPTIONS':
         return '', 204
     
     try:
         data = request.get_json() or {}
-        product_name = data.get('product_name', '').strip()
-        platforms = data.get('platforms')
+        query = data.get('product_name', '').strip()
         
-        if not product_name:
+        if not query:
             return jsonify({'success': False, 'error': 'Missing product_name'}), 400
         
-        logger.info(f"📦 Request: {product_name}")
-        
         start_time = time.time()
-        products = scrape_all_platforms(product_name, platforms)
-        scraping_time = time.time() - start_time
+        products, category = scrape_all(query)
+        scrape_time = time.time() - start_time
         
-        products.sort(key=lambda x: x['price'])
-        
-        platforms_searched = platforms or get_relevant_platforms(product_name)
         platforms_with_results = list(set(p['platform'] for p in products))
         
         response = {
             'success': len(products) > 0,
             'products': products,
-            'product_searched': product_name,
-            'platforms_searched': platforms_searched,
+            'product_searched': query,
+            'category': category,
             'platforms_with_results': platforms_with_results,
             'total_results': len(products),
             'cheapest': products[0] if products else None,
-            'scraping_time': round(scraping_time, 2),
+            'scraping_time': round(scrape_time, 2),
             'timestamp': time.time()
         }
         
-        logger.info(f"✅ Completed: {len(products)} products from {len(platforms_with_results)} platforms")
+        logger.info(f"\n✅ API Response: {len(products)} products in {scrape_time:.2f}s\n")
         
         return jsonify(response)
-    
+        
     except Exception as e:
-        logger.error(f"Error: {e}")
+        logger.error(f"API Error: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
+    print(f"""
+    ╔══════════════════════════════════════════════════════════╗
+    ║     🚀 Smart Product Price Scraper                       ║
+    ║     Port: {port}                                           ║
+    ║     ScraperAPI: {'✅ Configured' if SCRAPER_API_KEY else '❌ Not configured'}                             ║
+    ╚══════════════════════════════════════════════════════════╝
+    
+    Features:
+    ✅ Smart product categorization (electronics/grocery/fashion)
+    ✅ Exact product matching (filters irrelevant results)
+    ✅ Category-aware platform selection
+    ✅ Parallel scraping for speed
+    
+    Supported Platforms:
+    📱 Electronics: Amazon, Flipkart, Croma
+    🛒 Groceries: Amazon, BigBasket, Blinkit, Swiggy
+    👕 Fashion: Myntra, Amazon, Flipkart
+    """)
+    
     app.run(host='0.0.0.0', port=port, debug=False)
