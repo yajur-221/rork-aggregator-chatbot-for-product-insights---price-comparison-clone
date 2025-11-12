@@ -1,0 +1,10 @@
+# Backend API URL
+# For local development, use localhost
+# For production, this will be set by Rork automatically
+EXPO_PUBLIC_RORK_API_BASE_URL=http://localhost:3000
+
+# Optional: External scraper backend (if you have one deployed on Railway)
+# EXPO_PUBLIC_SCRAPER_BACKEND_URL=https://your-railway-url.up.railway.app
+
+# Optional: Vercel backend URL
+# EXPO_PUBLIC_VERCEL_BACKEND_URL=https://your-vercel-url.vercel.app
